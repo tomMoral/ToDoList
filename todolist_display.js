@@ -38,11 +38,8 @@ TodoList.prototype = {
 	_init : function(){
 		// Tasks file
 	    this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
-		let f = Gio.file_new_for_path(file);
+	    this.sectionsFile =  this.dirPath + "section.tasks";
 
-		let cmd_line = "rm '"+secFile+"'";
-		var r = GLib.spawn_command_line_sync(cmd_line, null);
-		this.sectionsFile =  this.dirPath + "section.tasks";
 		
 		// Locale
 		let locales = this.meta.path + "/locale";
