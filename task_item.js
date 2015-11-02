@@ -6,12 +6,7 @@ const Gio = imports.gi.Gio;
 const Lang = imports.lang;
 const _ = Gettext.gettext;
 
-
-// Read more: http://blog.fpmurphy.com/2011/04/replace-gnome-shell-activities-text-string-with-icon.html#ixzz3ndrA3Jrl
-
-
-
-// TodoList object
+// TaskItem object
 function TaskItem(name){
 	this.conn = null;
 	this._init(name);
@@ -66,7 +61,7 @@ TaskItem.prototype = {
 		this.emit('name_changed', this.name, name);
 
 		// Change the class variables
-		this.label.set_text(name);
+		this.label.set_text(name)
 
 	},
 }

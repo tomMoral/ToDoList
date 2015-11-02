@@ -16,7 +16,6 @@ const Gettext = imports.gettext;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const section_item = Extension.imports.section_item;
-const ComboItem = Extension.imports.combo_item;
 const ExtensionSettings = Extension.imports.utils.getSettings();
 
 
@@ -39,6 +38,10 @@ TodoList.prototype = {
 	_init : function(){
 		// Tasks file
 	    this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
+		let f = Gio.file_new_for_path(file);
+
+		let cmd_line = "rm '"+secFile+"'";
+		var r = GLib.spawn_command_line_sync(cmd_line, null);
 		this.sectionsFile =  this.dirPath + "section.tasks";
 		
 		// Locale
@@ -114,8 +117,6 @@ TodoList.prototype = {
 				entryNewTask.set_text('');
 			}
 		}));
-
-	    let secChooser = new ComboItem.ComboItem();
 
 		// Bottom section
 		var bottomSection = new PopupMenu.PopupMenuSection();
@@ -220,7 +221,7 @@ TodoList.prototype = {
 	},
 	_write : function(content){
 		// Write new text to file
-		let file = this.sectionsFile
+		let file = this.sectionsFile;
 		let f = Gio.file_new_for_path(file);
 		let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
 		Shell.write_string_to_stream (out, content);
