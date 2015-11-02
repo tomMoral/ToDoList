@@ -1,10 +1,22 @@
 ## todolist-gnome-shell-extension
 
-Simple todo list extension for gnome-shell
+This extension is built on the gnome shell extension [A simple TODO list](https://github.com/bsaleil/todolist-gnome-shell-extension) and add some features:
+
+* Section
+* Better erase handling
 
 ## Installation
 
-Go to [GNOME Shell page](https://extensions.gnome.org/extension/162/todo-list/) then switch on the button.
+Link the git folder in your gnome sheel extension repository (mine is ~/.local/share/gnome-shell/extensions/) as todolist@tomMoral.org
+Starting from the git repo:
+
+```bash
+$ GITREPO=$(pwd)
+$ cd ~/.local/share/gnome-shell/extensions/
+$ ln -s $GITREPO todolist@tomMoral.org
+```
+
+then restart you session ```Atl-F2``` and ```r```.
 
 ## License
 
