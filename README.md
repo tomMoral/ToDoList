@@ -11,6 +11,7 @@ Link the git folder in your gnome sheel extension repository (mine is ~/.local/s
 Starting from the git repo:
 
 ```bash
+$ ./install.sh
 $ GITREPO=$(pwd)
 $ cd ~/.local/share/gnome-shell/extensions/
 $ ln -s $GITREPO todolist@tomMoral.org
