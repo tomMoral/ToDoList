@@ -27,3 +27,9 @@ function getSettings()
 		settings_schema: schema
 	});
 }
+
+function debug(msg)
+{
+	log('[ToDo] - DEBUG - ' + msg) 
+}
+

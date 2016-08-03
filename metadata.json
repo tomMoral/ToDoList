@@ -2,9 +2,9 @@
   "description": "Todo list extension. You can add and remove task on your list in different section", 
   "name": "Section Todo List", 
   "shell-version": [
-      "3.18",
-      "3.16",
-      "3.14"
+      "3.20",
+      "3.19",
+      "3.18"
   ], 
   "url": "https://github.com/tomMoral/todolist-gnome-shell-extension", 
   "uuid": "todolist@tomMoral.org"
