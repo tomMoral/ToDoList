@@ -15,8 +15,9 @@ const Gettext = imports.gettext;
 
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const section_item = Extension.imports.section_item;
+const section_item = Extension.imports.gui_elements.section_item;
 const ExtensionSettings = Extension.imports.utils.getSettings();
+const debug = Extension.imports.utils.debug;
 
 
 const MAX_LENGTH = 100;
@@ -109,7 +110,6 @@ TodoList.prototype = {
 			let symbol = e.get_key_symbol();
 			if (symbol == KEY_RETURN || symbol == KEY_ENTER)
 			{
-				this.menu.close();
 				this._addSection(o.get_text());
 				entryNewTask.set_text('');
 			}
@@ -125,6 +125,8 @@ TodoList.prototype = {
 
 	// Fill UI with the section items
 	_fill_ui : function(){
+
+		debug("Fill UI");
 		
 		// Check if tasks file exists
 		this._clear();
@@ -137,19 +139,20 @@ TodoList.prototype = {
 		{
 			if (lines[i] != '' && lines[i] != '\n'){
 				let text = lines[i];
-				let section = new section_item.SectionItem(text, this.dirPath);
+				let section = new section_item.SectionItem(this.menu, text, this.dirPath);
 				this.n_tasks += section.n_tasks;
 				this.todosSec.addMenuItem(section);
-				section._set_supr_callback(Lang.bind(this, function(){
-					this._removeSection(text);
+				section.connect('supr_signal', Lang.bind(this, function(item, name){
+					debug('Catch supr signal');
+					this._removeSection(name);
 				}));
 				section.connect('task_count_changed', Lang.bind(this, function(item, diff){
-					log('Task count changed: ', diff);
+					debug('Task count changed: '+ diff);
 					this.n_tasks -= diff;
 					this.buttonText.set_text("ToDo ("+this.n_tasks+")");
 				}));
 				section.connect('name_changed', Lang.bind(this, function(o, oldSec, newSec){
-					log(oldSec, newSec);
+					debug(oldSec + ' || ' + newSec);
 					this._removeSection(oldSec);
 					this._addSection(newSec);
 				}));
@@ -199,7 +202,7 @@ TodoList.prototype = {
 		let secFile = this.dirPath+text+'.tasks';
 		let cmd_line = "rm '"+secFile+"'";
 		var r = GLib.spawn_command_line_sync(cmd_line, null);
-		log('Result for rm: ' + r);
+		debug('Result for rm: ' + r);
 
 	},
 	_read:  function(create){

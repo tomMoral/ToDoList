@@ -6,7 +6,7 @@
 // Licence: GPLv2+
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const todo_list = Extension.imports.todolist_display;
+const todo_list = Extension.imports.gui_elements.todolist_display;
 
 let todolist;	// Todolist instance
 let meta;

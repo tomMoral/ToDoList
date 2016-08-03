@@ -6,6 +6,10 @@ const Lang = imports.lang;
 const Gio = imports.gi.Gio;
 const _ = Gettext.gettext;
 
+
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const debug = Extension.imports.utils.debug;
+
 const MAX_LENGTH = 75;
 const KEY_RETURN = 65293;
 const KEY_ENTER  = 65421;
@@ -38,25 +42,15 @@ EntryItem.prototype = {
 		this.conn_ENT = this.ENT.connect('key-press-event', Lang.bind(this,function(o, e){
 			let symbol = e.get_key_symbol();
 			if (symbol == KEY_RETURN || symbol == KEY_ENTER){
-				log("Debug: Add entry "+ o.get_text())
+				debug("Add entry "+ o.get_text())
 				this.emit('new_task', o.get_text());
-				entryNewTask.set_text('');
+				o.set_text('');
 			}
 		}));
 		this.actor.add_actor(this.newTask);
 	},
-
-	_set_supr_callback: function(callback){
-		if(this.conn != null)
-			this.supr(this.conn);
-		this.conn = this.supr.connect('clicked', function(){
-			callback();
-		});
-	},
 	_destroy: function(){
 		this.ENT.disconnect(this.conn_ENT);
-		if(this.conn != null)
-			this.supr(this.conn);
 	},
 	isEntry: function(){
 		return true;

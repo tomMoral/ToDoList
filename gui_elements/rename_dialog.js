@@ -3,6 +3,8 @@ const ModalDialog = imports.ui.modalDialog;
 const Lang = imports.lang;
 const St = imports.gi.St;
 
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const debug = Extension.imports.utils.debug;
 
 const MAX_LENGTH = 75;
 const KEY_RETURN = 65293;
@@ -22,13 +24,13 @@ RenameDialog.prototype = {
 		ModalDialog.ModalDialog.prototype._init.call(this);
 		this.renameEntry = new St.Entry({
 	        name: "renameEntry",
+	        text: _(name),
 	        hint_text: _(name),
 	        track_hover: true,
-	        can_focus: true
+	        can_focus: true,
 	    });
 	    this.callback = function(text){
-			global.log('Whatever action!');
-			global.log(text);
+			debug('Whatever action! ' + text);
 	    }
 	    let entry = this.renameEntry.clutter_text;
 	    entry.set_text(name);
@@ -60,9 +62,9 @@ RenameDialog.prototype = {
 		};
 		this.setButtons([ok_button, cancel_button]);
 		this.setInitialKeyFocus(this.renameEntry);
-		log(this._initialKeyFocus)
+		debug('' + this._initialKeyFocus)
 		this.connect('opened', Lang.bind(this, function(){
-			log('grab focus!!!!!!!!!!!!!!!!!')
+			debug('grab focus!!!!!!!!!!!!!!!!!');
 			this.renameEntry.grab_key_focus();
 		}));
 	},
