@@ -8,7 +8,7 @@ const _ = Gettext.gettext;
 
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const RenameDialog = Extension.imports.rename_dialog.RenameDialog;
+const RenameDialog = Extension.imports.gui_elements.rename_dialog.RenameDialog;
 const debug = Extension.imports.utils.debug;
 
 const BUTTON_RELEASE = 7;
