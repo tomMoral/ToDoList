@@ -5,5 +5,9 @@
 			<default><![CDATA[['<Control><Alt>space']]]></default>
 			<summary>The key you want to open todolist.</summary>
 		</key>
+		<key type="as" name="todolist-directory">
+			<default><![CDATA[['.config/Todolist']]]></default>
+			<summary>The directory in which todolist are saved.</summary>
+		</key>
 	</schema>
 </schemalist>

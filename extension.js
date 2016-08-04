@@ -8,27 +8,27 @@ const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const todo_list = Extension.imports.gui_elements.todolist_display;
 
-let todolist;	// Todolist instance
+let todolist;   // Todolist instance
 let meta;
 
 // Init function
 function init(metadata) 
-{		
-	meta = metadata;
+{       
+    meta = metadata;
 }
 
 function enable()
 {
-	todolist = new todo_list.TodoList(meta);
-	todolist._enable();
-	Main.panel.addToStatusArea('todolist_sec', todolist);
+    todolist = new todo_list.TodoList(meta);
+    todolist._enable();
+    Main.panel.addToStatusArea('todolist_sec', todolist);
 }
 
 function disable()
 {
-	todolist._disable();
-	todolist.destroy();
-	todolist = null;
+    todolist._disable();
+    todolist.destroy();
+    todolist = null;
 }
 
 //----------------------------------------------------------------------
