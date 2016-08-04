@@ -4,6 +4,10 @@ This extension is built on the gnome shell extension [A simple TODO list](https:
 
 * Section
 * Better erase handling
+* Double click to rename a Section/Task
+
+!(Screenshot)[images/screenshot.png]
+
 
 ## Installation
 
