@@ -16,9 +16,6 @@ Starting from the git repo:
 
 ```bash
 $ ./install.sh
-$ GITREPO=$(pwd)
-$ cd ~/.local/share/gnome-shell/extensions/
-$ ln -s $GITREPO todolist@tomMoral.org
 ```
 
 then restart you session ```Atl-F2``` and ```r```.
