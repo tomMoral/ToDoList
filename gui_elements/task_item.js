@@ -12,6 +12,7 @@ const RenameDialog = Extension.imports.gui_elements.rename_dialog.RenameDialog;
 const debug = Extension.imports.utils.debug;
 
 const BUTTON_RELEASE = 7;
+const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-close.png");
 
 // TaskItem object
 function TaskItem(parent_menu, name){
@@ -26,20 +27,20 @@ TaskItem.prototype = {
         this.name = name;
         this.parent_menu = parent_menu;
         this.actor.add_style_class_name('task-item');
-        let logo = new St.Icon({icon_size: 10, icon_name: 'emblem-unreadable' });
-        let supr_btn = new St.Button({ style_class: 'task-supr', label: '',} );
+        let logo = new St.Icon({icon_size: 10, gicon: GTK_CLOSE_ICON});
+        this._supr_btn = new St.Button({ style_class: 'task-supr', label: '',} );
         this.label = new St.Label({ 
             style_class: 'task-label', 
             text: name
         } );
-        supr_btn.add_actor(logo)
+        this._supr_btn.add_actor(logo)
         this.actor.add_actor(this.label);
-        this.actor.add_actor(supr_btn);
+        this.actor.add_actor(this._supr_btn);
 
         // Connections
         this.actor.connect('event',
                            Lang.bind(this, this._clicked));
-        this.conn = supr_btn.connect('clicked',
+        this.conn = this._supr_btn.connect('clicked',
                                      Lang.bind(this, this._supr_call));
     },
     _clicked : function(actor, ev){

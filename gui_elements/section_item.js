@@ -19,6 +19,8 @@ const debug = Extension.imports.utils.debug;
 const BASE_TASKS = "";
 const KEY_DELETE = 65535;
 
+const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-close.png");
+
 // Read more: http://blog.fpmurphy.com/2011/04/replace-gnome-shell-activities-text-string-with-icon.html#ixzz3ndrA3Jrl
 
 
@@ -39,11 +41,10 @@ SectionItem.prototype = {
         this.sectionFile = directory+fileName+'.tasks';
         this.n_tasks = 0;
         this.metaConn = [];
-        this.taskConn = [];
         this.fileName = fileName;
         this.directory = directory;
         PopupMenu.PopupSubMenuMenuItem.prototype._init.call(this, fileName);
-        let logo = new St.Icon({icon_size: 12, icon_name: 'emblem-unreadable',
+        let logo = new St.Icon({icon_size: 12, gicon: GTK_CLOSE_ICON,
                                 style_class: 'icon_sec'});
         this.supr = new St.Button({ style_class: 'sec_supr', label:''});
         this.supr.add_actor(logo);
@@ -85,6 +86,7 @@ SectionItem.prototype = {
     },
     _draw_section: function(caller, redraw=true)
     {
+        debug('Draw section for '+ caller);
         this._clear();
 
         // Initiate the task count
@@ -103,32 +105,33 @@ SectionItem.prototype = {
                 // Create a task item and set its callback
                 let taskItem = new TaskItem.TaskItem(this.parent_menu, taskText[i]);
                 let textClicked = taskText[i];
-                this.taskConn.push(taskItem.connect(
+                taskItem.connect(
                     'name_changed', 
                     Lang.bind(this, function(o, oldtext, new_text){
                         this._remove_task(oldtext);
                         this._add_task(new_text);
                         this._draw_section();
-                    })));
-                this.taskConn.push(taskItem.connect(
+                    }));
+                taskItem.connect(
                     'supr_signal', 
                     Lang.bind(this, function(o, name){
+                        debug('callback supr_signal in section')
                         this._remove_task(name);
                         this._draw_section('Remove task');
-                    })));
+                    }));
                 this.menu.addMenuItem(taskItem);
                 this.n_tasks++;
             }
         }
         this.label.set_text(this.fileName + " (" + this.n_tasks + ")");
         diff = diff - this.n_tasks;
-        if(redraw)
+        if(redraw && diff != 0)
             this.emit('task_count_changed', diff);
         if(this.n_tasks == 0)
             this.supr.show();
 
         let entry_task = new EntryItem();
-        this.taskConn.push(entry_task.connect('new_task', this.new_task));
+        entry_task.connect('new_task', this.new_task);
         this.menu.addMenuItem(entry_task);
         return this;
     },
@@ -151,6 +154,7 @@ SectionItem.prototype = {
         let newText = "";
         for (let i=0; i<tasks.length; i++)
         {
+            debug(tasks[i] + ' - ' + text + '-' + tasks[i] == text)
             // Add task to new text if not empty and not removed task
             if (tasks[i] != text && tasks[i] != '' && tasks[i] != '\n')
             {
@@ -182,16 +186,21 @@ SectionItem.prototype = {
     },
     _clear : function()
     {
-        for each (var conn in this.taskConn)
-            this.disconnect(conn);
-        for each (var item in this.menu._getMenuItems())
+        items = this.menu._getMenuItems();
+        for (let i=0; i<items.length; i++)
+        {
+            item = items[i];
             item._destroy();
-        this.menu.removeAll();  
+            item.disconnectAll();
+        }
+        this.menu.removeAll();
 
     },
     _destroy: function(){
-        for each (var conn in this.metaConn)
+        for each (var conn in this.metaConn){
             this.disconnect(conn);
+            this.metaConn.pop();
+        }
         debug("Section clean-up done")
     },
     _read:  function(create)

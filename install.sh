@@ -11,7 +11,6 @@ glib-compile-schemas ./schemas/
 
 echo "Create the system ressource"
 mkdir -p .config/ToDoList
-sudo cp icon/gtk-close.png /usr/share/icons/hicolor/48x48/apps/
 
 echo "Install the extension for the current user"
 GITREPO=$(pwd)
