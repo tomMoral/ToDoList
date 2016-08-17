@@ -9,9 +9,6 @@ cd ..
 echo "Build schema"
 glib-compile-schemas ./schemas/
 
-echo "Create the system ressource"
-mkdir -p .config/ToDoList
-
 echo "Install the extension for the current user"
 GITREPO=$(pwd)
 cd /home/$USER/.local/share/gnome-shell/extensions

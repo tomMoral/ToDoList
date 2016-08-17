@@ -39,6 +39,9 @@ TodoList.prototype = {
     _init : function(){
         // Tasks file
         this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
+        if(! GLib.file_test(this.dirPath, GLib.FileTest.EXISTS)){
+            GLib.mkdir_with_parents(this.dirPath, 511);
+        }
         this.sectionsFile =  this.dirPath + "section.tasks";
 
         // Locale
