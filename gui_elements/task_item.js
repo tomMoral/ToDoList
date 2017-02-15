@@ -15,15 +15,16 @@ const BUTTON_RELEASE = 7;
 const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-close.png");
 
 // TaskItem object
-function TaskItem(parent_menu, name){
+function TaskItem(parent_menu, id, name){
     this.conn = null;
-    this._init(parent_menu, name);
+    this._init(parent_menu, id, name);
 }
 
 TaskItem.prototype = {
     __proto__ : PopupMenu.PopupBaseMenuItem.prototype,
-    _init: function(parent_menu, name){
+    _init: function(parent_menu, id, name){
         PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
+        this.id = id;
         this.name = name;
         this.parent_menu = parent_menu;
         this.actor.add_style_class_name('task-item');
@@ -70,7 +71,7 @@ TaskItem.prototype = {
         }
 
         // Emit signal so todolist clean up
-        this.emit('name_changed', this.name, name);
+        this.emit('name_changed', this.id, name);
 
         // Change the class variables
         this.label.set_text(name)
@@ -78,6 +79,6 @@ TaskItem.prototype = {
     },
     _supr_call : function(){
         debug('Emit supr signal')
-        this.emit('supr_signal', this.name);
+        this.emit('supr_signal', this.id);
     }
 }

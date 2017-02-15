@@ -26,33 +26,38 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 // TodoList object
-function SectionItem(parent_menu, name, dir)
+function SectionItem(parent_menu, sections, id)
 {
-    this._init(parent_menu, name, dir);
+    this._init(parent_menu, sections, id);
 }
 
 SectionItem.prototype = {
     __proto__ : PopupMenu.PopupSubMenuMenuItem.prototype,
-    _init: function(parent_menu, fileName, directory)
+    _init: function(parent_menu, sections, id)
     {
+        debug("section : "+ id);
+        this.sections = sections;
+        let section = sections[id];
+
+        debug("Got section with name: "+ section.name);
+        this.id = section.id;
+        this.name = section.name;
+        this.tasks = section.tasks;
+
         this.parent_menu = parent_menu;
 
         // Fill section from the associated file
-        this.sectionFile = directory+fileName+'.tasks';
         this.n_tasks = 0;
         this.metaConn = [];
-        this.fileName = fileName;
-        this.directory = directory;
-        PopupMenu.PopupSubMenuMenuItem.prototype._init.call(this, fileName);
+
+
+        PopupMenu.PopupSubMenuMenuItem.prototype._init.call(this, this.name);
         let logo = new St.Icon({icon_size: 12, gicon: GTK_CLOSE_ICON,
                                 style_class: 'icon_sec'});
         this.supr = new St.Button({ style_class: 'sec_supr', label:''});
         this.supr.add_actor(logo);
         this.actor.add_actor(this.supr);
-        this.new_task = Lang.bind(this, function(item, text){
-                    this._add_task(text);
-                    this._draw_section('New task');
-                });
+        this.new_task = Lang.bind(this, this._add_task);
         this._draw_section('init', false);
         this.metaConn.push(this.actor.connect('button-release-event', 
                                               Lang.bind(this, this._clicked)));
@@ -79,7 +84,7 @@ SectionItem.prototype = {
         {
             debug('Double click in section');
             this.parent_menu.close();
-            let mod = new RenameDialog(this.fileName);
+            let mod = new RenameDialog(this.name);
             mod.set_callback(Lang.bind(this, this._rename));
             mod.open();
         }
@@ -95,98 +100,73 @@ SectionItem.prototype = {
 
 
         // Get section content and create file if needed
-        let content = this._read(true);
-        let taskText = content.toString().split('\n');
         this.supr.hide();
-        for(let i=0; i < taskText.length; i++)
+        for(var i=0; i < this.tasks.length; i++)
         {
-            if (taskText[i] != '' && taskText[i] != '\n')
-            {
-                // Create a task item and set its callback
-                let taskItem = new TaskItem.TaskItem(this.parent_menu, taskText[i]);
-                let textClicked = taskText[i];
-                taskItem.connect(
-                    'name_changed', 
-                    Lang.bind(this, function(o, oldtext, new_text){
-                        this._remove_task(oldtext);
-                        this._add_task(new_text);
-                        this._draw_section();
-                    }));
-                taskItem.connect(
-                    'supr_signal', 
-                    Lang.bind(this, function(o, name){
-                        debug('callback supr_signal in section')
-                        this._remove_task(name);
-                        this._draw_section('Remove task');
-                    }));
-                this.menu.addMenuItem(taskItem);
-                this.n_tasks++;
-            }
+            // Create a task item and set its callback
+            let taskItem = new TaskItem.TaskItem(this.parent_menu, i, this.tasks[i]);
+            taskItem.connect(
+                'name_changed', 
+                Lang.bind(this, function(o, id, new_name){
+                    this.sections[this.id].tasks[id] = new_name;
+                    this.emit("dump_signal", false);
+                    this._draw_section("_rename_task", true);
+                }));
+            taskItem.connect(
+                'supr_signal', 
+                Lang.bind(this, function(o, id){
+                    debug('callback supr_signal in section')
+                    this._remove_task(id);
+                }));
+            this.menu.addMenuItem(taskItem);
+            this.n_tasks++;
         }
-        this.label.set_text(this.fileName + " (" + this.n_tasks + ")");
+        this.label.set_text(this.name + " (" + this.n_tasks + ")");
         diff = diff - this.n_tasks;
         if(redraw && diff != 0)
             this.emit('task_count_changed', diff);
         if(this.n_tasks == 0)
             this.supr.show();
 
+        if(redraw)
+            this.menu.open();
+
         let entry_task = new EntryItem();
         entry_task.connect('new_task', this.new_task);
         this.menu.addMenuItem(entry_task);
         return this;
     },
-    _add_task : function(text)
+    _add_task : function(item, text)
     {
         // Don't add empty task
         if (text == '' || text == '\n')
             return;
         debug("Add task to section " + text);
-        // Append to content
-        let content = this._read(false);
-        content = content + text + "\n";
-        this._write(content);
+
+        this.sections[this.id].tasks.push(text);
+        this.emit("dump_signal", false);
+        this._draw_section("_add_task", true);
     },
-    _remove_task : function (text)
+    _remove_task : function (id)
     {
-        // Create new text to write
-        let content = this._read(false);
-        let tasks = content.toString().split('\n');
-        let newText = "";
-        for (let i=0; i<tasks.length; i++)
-        {
-            debug(tasks[i] + ' - ' + text + '-' + tasks[i] == text)
-            // Add task to new text if not empty and not removed task
-            if (tasks[i] != text && tasks[i] != '' && tasks[i] != '\n')
-            {
-                newText += tasks[i] + "\n";
-            }
-        }
-        
-        // Write new text to file
-        this._write(newText);
+        this.sections[this.id].tasks.splice(id);
+        this.emit("dump_signal", false);
+        this._draw_section("_remove_task", true);
     },
     _rename : function(text)
     {
-        if(text == this.fileName || text.length == 0)
+        if(text == this.name || text.length == 0)
             return;
 
-        // Copy the task list to a new location
-        let newSectionFile = this.directory+text+'.tasks';
-        let cmd_line = "cp '"+this.sectionFile+"' '"+newSectionFile+"'";
-        var r = GLib.spawn_command_line_sync(cmd_line, null);
-        debug('Result for copy: '+cmd_line + " -> " + r);
-
-        // Emit signal so todolist clean up
-        this.emit('name_changed', this.fileName, text);
-
-        // Change the class variables
-        this.fileName = text;
-        this.sectionFile = newSectionFile;
-
+        this.sections[this.id].name = text;
+        this.emit("dump_signal", true);
+        debug("rename new : " +this.sections[this.id].name);
+        return;
     },
     _clear : function()
     {
-        items = this.menu._getMenuItems();
+        let item = null;
+        let items = this.menu._getMenuItems();
         for (let i=0; i<items.length; i++)
         {
             item = items[i];
@@ -203,34 +183,9 @@ SectionItem.prototype = {
         }
         debug("Section clean-up done")
     },
-    _read:  function(create)
-    {
-        let file = this.sectionFile;
-        // Check if file exists
-        if (!GLib.file_test(file, GLib.FileTest.EXISTS))
-        {
-            //Create if needed
-            if(create && !GLib.file_test(file, GLib.FileTest.EXISTS))
-                GLib.file_set_contents(file, BASE_TASKS);
-            else
-                global.logError("Todo list : Error with file : " + file);
-                return "";
-        }
-        let content = Shell.get_file_contents_utf8_sync(file);
-        return content;
-    },
-    _write : function(content)
-    {
-        // Write new text to file
-        let file = this.sectionFile;
-        let f = Gio.file_new_for_path(file);
-        let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
-        Shell.write_string_to_stream (out, content);
-        out.close(null);
-    },
     _supr_call : function()
     {
         debug('Emit supr signal');
-        this.emit('supr_signal', this.fileName);
+        this.emit('supr_signal', this.name, this.id);
     }
 }
