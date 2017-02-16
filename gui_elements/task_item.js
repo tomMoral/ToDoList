@@ -1,15 +1,14 @@
-
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
-const Gettext = imports.gettext.domain('gnome-shell');
 const Gio = imports.gi.Gio;
 const Lang = imports.lang;
-const _ = Gettext.gettext;
-
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const RenameDialog = Extension.imports.gui_elements.rename_dialog.RenameDialog;
 const debug = Extension.imports.utils.debug;
+
+const Gettext = imports.gettext.domain('todolist');
+const _ = Gettext.gettext;
 
 const BUTTON_RELEASE = 7;
 const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-close.png");

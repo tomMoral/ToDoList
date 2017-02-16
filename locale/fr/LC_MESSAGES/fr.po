@@ -1,15 +1,39 @@
-#: extension.js:40 73 106
+#
+#
+# GUI
+#
+#
+# todolist_display.js:54
 msgid "(...)"
 msgstr "(···)"
-#: extension.js:95
+# todolist_display.js:111
+msgid "New Section..."
+msgstr "Nouvelle Section"
+# todolist_display.js:174 | gui_elements/entry_item.js:35
 msgid "New task..."
 msgstr "Nouvelle tâche…"
-#: prefs.js:40
+#
+# rename_dialog.js: 52
+msgid "Ok"
+msgstr "Accepter"
+# rename_dialog.js: 60
+msgid "Cancel"
+msgstr "Annuler"
+#
+#
+# Preferences
+#
+#
+#: line:39
 msgid "Name"
 msgstr "Nom"
-#: prefs.js:41
+#: prefs.js:40
 msgid "Value"
 msgstr "Valeur"
-#: prefs.js:42
+#: prefs.js:41
 msgid "Open todolist"
 msgstr "Ouvrir la todolist"
+#: prefs.js:42
+msgid "Todolist Directory"
+msgstr "Répertoire Todolist"
+

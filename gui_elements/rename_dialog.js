@@ -6,6 +6,9 @@ const St = imports.gi.St;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const debug = Extension.imports.utils.debug;
 
+const Gettext = imports.gettext.domain('todolist');
+const _ = Gettext.gettext;
+
 const MAX_LENGTH = 75;
 const KEY_RETURN = 65293;
 const KEY_ENTER  = 65421;
@@ -24,13 +27,13 @@ RenameDialog.prototype = {
         ModalDialog.ModalDialog.prototype._init.call(this);
         this.renameEntry = new St.Entry({
             name: "renameEntry",
-            text: _(name),
-            hint_text: _(name),
+            text: name,
+            hint_text: name,
             track_hover: true,
             can_focus: true,
         });
         this.callback = function(text){
-            debug('Whatever action! ' + text);
+            debug('No callback??');
         }
         let entry = this.renameEntry.clutter_text;
         entry.set_text(name);
@@ -46,7 +49,7 @@ RenameDialog.prototype = {
         }));
         this.contentLayout.add_actor(this.renameEntry);
         var ok_button = {
-            'label': 'Ok',
+            'label': _("Ok"),
             'action': Lang.bind(this, function(o, e){
                 this.callback(this.renameEntry.clutter_text.get_text());
                 this.close();
@@ -54,7 +57,7 @@ RenameDialog.prototype = {
             'default': true,
         };
         var cancel_button = {
-            'label': 'Cancel',
+            'label': _("Cancel"),
             'action': Lang.bind(this, function(o, e){
                 this.close();
             }),

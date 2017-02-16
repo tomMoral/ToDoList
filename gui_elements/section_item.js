@@ -6,15 +6,15 @@ const Gio = imports.gi.Gio;
 const Shell = imports.gi.Shell;
 const Lang = imports.lang;
 const St = imports.gi.St;
-const Gettext = imports.gettext.domain('gnome-shell');
-const _ = Gettext.gettext;
-
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const TaskItem = Extension.imports.gui_elements.task_item;
 const EntryItem = Extension.imports.gui_elements.entry_item.EntryItem;
 const RenameDialog = Extension.imports.gui_elements.rename_dialog.RenameDialog;
 const debug = Extension.imports.utils.debug;
+
+const Gettext = imports.gettext.domain('todolist');
+const _ = Gettext.gettext;
 
 const BASE_TASKS = "";
 const KEY_DELETE = 65535;

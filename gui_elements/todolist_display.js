@@ -1,5 +1,4 @@
 
-
 const Meta = imports.gi.Meta;
 const Main = imports.ui.main;
 const St = imports.gi.St;
@@ -11,13 +10,16 @@ const Shell = imports.gi.Shell;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Clutter = imports.gi.Clutter;
-const Gettext = imports.gettext;
 
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const section_item = Extension.imports.gui_elements.section_item;
 const ExtensionSettings = Extension.imports.utils.getSettings();
 const debug = Extension.imports.utils.debug;
+
+
+const Gettext = imports.gettext.domain('todolist');
+const _ = Gettext.gettext;
 
 
 const MAX_LENGTH = 100;
@@ -45,10 +47,6 @@ TodoList.prototype = {
         this.sectionsFile =  this.dirPath + "section.tasks";
         this.dbFile =  this.dirPath + "tasks.json";
         this._load();
-
-        // Locale
-        let locales = this.meta.path + "/locale";
-        Gettext.bindtextdomain('todolist', locales);
 
         // Button ui
         PanelMenu.Button.prototype._init.call(this, St.Align.START);

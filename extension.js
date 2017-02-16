@@ -7,6 +7,7 @@
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const todo_list = Extension.imports.gui_elements.todolist_display;
+const initTranslations = Extension.imports.utils.initTranslations;
 
 let todolist;   // Todolist instance
 let meta;
@@ -15,6 +16,7 @@ let meta;
 function init(metadata) 
 {       
     meta = metadata;
+    initTranslations("todolist");
 }
 
 function enable()

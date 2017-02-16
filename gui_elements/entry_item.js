@@ -1,14 +1,14 @@
 
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
-const Gettext = imports.gettext.domain('gnome-shell');
 const Lang = imports.lang;
 const Gio = imports.gi.Gio;
-const _ = Gettext.gettext;
-
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const debug = Extension.imports.utils.debug;
+
+const Gettext = imports.gettext.domain('todolist');
+const _ = Gettext.gettext;
 
 const MAX_LENGTH = 75;
 const KEY_RETURN = 65293;
