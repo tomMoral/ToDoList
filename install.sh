@@ -1,7 +1,7 @@
 
 # Update locale
 echo "Build locale"
-cd ./locale
+cd todolist@tomMoral.org/locale
 ./update.sh
 cd ..
 
