@@ -16,6 +16,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const section_item = Extension.imports.gui_elements.section_item;
 const ExtensionSettings = Extension.imports.utils.getSettings();
 const debug = Extension.imports.utils.debug;
+const get_project_tasks = Extension.imports.project_todo.get_project_tasks;
 
 
 const Gettext = imports.gettext.domain('todolist');
@@ -26,6 +27,20 @@ const MAX_LENGTH = 100;
 const KEY_RETURN = 65293;
 const KEY_ENTER  = 65421;
 const BASE_JSON = '{"0": {"id": "0", "name": "Section1", "tasks": []}}';
+
+
+// Testing for projects
+
+const PROJECTS = [
+    {
+        "dir":"/home/tom/Work/phd/Loptim",
+        "type": "latex"
+    },
+    {
+        "dir":"/home/tom/Work/prog/loky",
+        "type": "python"
+    }
+];
 
 // TodoList object
 function TodoList(metadata)
@@ -86,7 +101,8 @@ TodoList.prototype = {
             todosSec.one = true;
 
             for each (var item in todosSec._getMenuItems()){
-                item.menu.close();
+                if (item.menu != null)
+                    item.menu.close();
             }
             if(subMenu != null)
                 subMenu.open();
@@ -144,7 +160,7 @@ TodoList.prototype = {
 
         for(var id in this.sections)
         {
-            let section = new section_item.SectionItem(this.menu, this.sections, id);
+            let section = new section_item.SectionItem(this, this.sections, id);
             this.n_tasks += section.n_tasks;
             this.todosSec.addMenuItem(section);
             section.connect('dump_signal', Lang.bind(this, function(item, redraw){
@@ -165,6 +181,20 @@ TodoList.prototype = {
                 this._removeSection(oldSec);
                 this._addSection(newSec);
             }));
+        }
+
+        var separator = new PopupMenu.PopupSeparatorMenuItem();
+        this.todosSec.addMenuItem(separator);
+        separator = new PopupMenu.PopupMenuItem("Projects");
+        separator.label.add_style_class_name("separator-project")
+        this.todosSec.addMenuItem(separator);
+
+        debug("##### PROJECTS #####")
+        for(var id in this.projects)
+        {
+            let section = new section_item.SectionItem(this, this.projects, id);
+            this.n_tasks += section.n_tasks;
+            this.todosSec.addMenuItem(section);
         }
 
         // Update status button
@@ -229,20 +259,50 @@ TodoList.prototype = {
             this.next_id = Math.max(this.next_id, id);
         }
         this.next_id += 1;
+
+        this.projects = get_project_tasks(PROJECTS);
+    },
+    _reload_projects: function(){
+        this.projects = get_project_tasks(PROJECTS);
+        this._fill_ui();
     },
     _enable : function() {
         // Conect file 'changed' signal to _refresh
         // let fileM = Gio.file_new_for_path(this.dbFile);
         // this.monitor = fileM.monitor(Gio.FileMonitorFlags.NONE, null);
         // this.monitor.connect('changed', Lang.bind(this, this._fill_ui));
+        this.monitors = []
+        for (var i = PROJECTS.length - 1; i >= 0; i--) {
+            let project = PROJECTS[i];
+            let dir = Gio.file_new_for_path(project.dir);
+            let monitor = dir.monitor(Gio.FileMonitorFlags.NONE, null);
+            monitor.set_rate_limit(400);
+            monitor.connect("changed", Lang.bind(this, this._check_files));
+            this.monitors[i] = monitor;
+        }
 
     },
     _disable : function() {
         // Stop monitoring file
-        // this.monitor.cancel();
+        for (var i = PROJECTS.length - 1; i >= 0; i--) {
+            this.monitors[i].cancel();
+        }
+        this.monitors.removeAll()
         this._clear();
         Main.wm.removeKeybinding('open-todolist');
         debug('clean up for todolist done');
+    },
+    _check_files: function(monitor, file, file2, event_type){
+        debug("Check file "+file.get_path());
+        debug(event_type);
+
+        if (event_type == Gio.FileMonitorEvent.DELETED ||
+            event_type == Gio.FileMonitorEvent.CHANGES_DONE_HINT
+            ){
+            debug("Project changed");
+            this._reload_projects()
+        }
+
     },
     // Called when 'open-todolist' is emitted (binded with Lang.bind)
     signalKeyOpen: function(){
@@ -255,9 +315,9 @@ TodoList.prototype = {
     },
     _onOpenStateChanged: function(state, s){
         if(s)
-            for each (var item in this.todosSec._getMenuItems()){
+            for each (var item in this.todosSec._getMenuItems())
+                if (item.menu != null)
                     item.menu.close();
-                }
     }
 
 

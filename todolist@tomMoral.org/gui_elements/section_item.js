@@ -26,14 +26,14 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 // TodoList object
-function SectionItem(parent_menu, sections, id)
+function SectionItem(parent, sections, id)
 {
-    this._init(parent_menu, sections, id);
+    this._init(parent, sections, id);
 }
 
 SectionItem.prototype = {
     __proto__ : PopupMenu.PopupSubMenuMenuItem.prototype,
-    _init: function(parent_menu, sections, id)
+    _init: function(parent, sections, id)
     {
         debug("section : "+ id);
         this.sections = sections;
@@ -44,7 +44,7 @@ SectionItem.prototype = {
         this.name = section.name;
         this.tasks = section.tasks;
 
-        this.parent_menu = parent_menu;
+        this.parent_menu = parent.menu;
 
         // Fill section from the associated file
         this.n_tasks = 0;
@@ -104,7 +104,7 @@ SectionItem.prototype = {
         for(var i=0; i < this.tasks.length; i++)
         {
             // Create a task item and set its callback
-            let taskItem = new TaskItem.TaskItem(this.parent_menu, i, this.tasks[i]);
+            let taskItem = new TaskItem.TaskItem(this, i);
             taskItem.connect(
                 'name_changed', 
                 Lang.bind(this, function(o, id, new_name){

@@ -97,3 +97,10 @@
 	/*background-color: #25283C;*/
 	padding-left: 17px;
 }
+
+.separator-project{
+	text-align: center;
+	font-weight: bold;
+	text-decoration: underline;
+	width: 100%;
+}

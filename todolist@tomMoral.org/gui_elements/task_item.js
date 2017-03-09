@@ -1,6 +1,7 @@
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
@@ -14,24 +15,25 @@ const BUTTON_RELEASE = 7;
 const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-close.png");
 
 // TaskItem object
-function TaskItem(parent_menu, id, name){
+function TaskItem(parent, id){
     this.conn = null;
-    this._init(parent_menu, id, name);
+    this._init(parent, id);
 }
 
 TaskItem.prototype = {
     __proto__ : PopupMenu.PopupBaseMenuItem.prototype,
-    _init: function(parent_menu, id, name){
+    _init: function(parent, id){
         PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
         this.id = id;
-        this.name = name;
-        this.parent_menu = parent_menu;
+        this.task = parent.tasks[id]
+        this.name = parent.tasks[id].name;
+        this.parent_menu = parent.parent_menu;
         this.actor.add_style_class_name('task-item');
         let logo = new St.Icon({icon_size: 10, gicon: GTK_CLOSE_ICON});
         this._supr_btn = new St.Button({ style_class: 'task-supr', label: '',} );
         this.label = new St.Label({ 
             style_class: 'task-label', 
-            text: name
+            text: this.name
         } );
         this._supr_btn.add_actor(logo)
         this.actor.add_actor(this.label);
@@ -55,6 +57,12 @@ TaskItem.prototype = {
             let mod = new RenameDialog(this.name);
             mod.set_callback(Lang.bind(this, this._rename));
             mod.open();
+        }
+        else if (this.task.file != null) {
+            debug(this.task.file);
+            GLib.spawn_command_line_sync(
+                "subl3 " + this.task.file
+                + ":" + this.task.line);
         }
     },
     _destroy: function(){
