@@ -107,6 +107,5 @@ TaskItem.prototype = {
 
         // Change the class variables
         this._label.set_text(name);
-
     }
 }
