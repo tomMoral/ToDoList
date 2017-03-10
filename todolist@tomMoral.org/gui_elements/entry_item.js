@@ -1,21 +1,21 @@
-
-const PopupMenu = imports.ui.popupMenu;
+// Standard imports
 const St = imports.gi.St;
 const Lang = imports.lang;
 const Gio = imports.gi.Gio;
+const Clutter = imports.gi.Clutter;
+const PopupMenu = imports.ui.popupMenu;
 
+// Extension import: rename dialog and util.debug
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const debug = Extension.imports.utils.debug;
 
+// Define the functions needed for translation purpose
 const Gettext = imports.gettext.domain('todolist');
 const _ = Gettext.gettext;
 
 const MAX_LENGTH = 75;
-const KEY_RETURN = 65293;
-const KEY_ENTER  = 65421;
 
 // Read more: http://blog.fpmurphy.com/2011/04/replace-gnome-shell-activities-text-string-with-icon.html#ixzz3ndrA3Jrl
-
 
 
 // TodoList object
@@ -26,10 +26,13 @@ function EntryItem(){
 
 EntryItem.prototype = {
     __proto__ : PopupMenu.PopupBaseMenuItem.prototype,
-    _init: function(){
+    _init: function()
+    {
+        // Call base constructor and set style_class_name
         PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
         this.actor.add_style_class_name('task-entry');
-        // Text entry
+
+        // Add a text entry in the BaseMenuItem layout
         this.newTask = new St.Entry({
             name: "newTaskEntry",
             hint_text: _("New task..."),
@@ -39,21 +42,29 @@ EntryItem.prototype = {
         this.ENT = this.newTask.clutter_text;
         this.ENT.set_max_length(MAX_LENGTH);
         // Call back to add section when ENTER is press
-        this.conn_ENT = this.ENT.connect('key-press-event', Lang.bind(this,function(o, e){
-            let symbol = e.get_key_symbol();
-            if (symbol == KEY_RETURN || symbol == KEY_ENTER){
-                debug("Add entry "+ o.get_text())
-                this.emit('new_task', o.get_text());
-                o.set_text('');
-            }
-        }));
+        this.connection_ENT = this.ENT.connect(
+            'key-press-event', Lang.bind(this, this._on_keypress_event));
         this.actor.add_actor(this.newTask);
     },
-    _destroy: function(){
-        this.ENT.disconnect(this.conn_ENT);
+    destroy: function()
+    {
+        this.ENT.disconnect(this.connection_ENT);
+        PopupMenu.PopupBaseMenuItem.prototype.destroy.call(this);
     },
-    isEntry: function(){
+    isEntry: function()
+    {
         return true;
+    },
+    _on_keypress_event: function(entry, event)
+    {
+        // If the key press is Enter or Return,
+        // add the new task to the todolist
+        let symbol = event.get_key_symbol();
+        if (symbol == Clutter.KEY_Return ||
+            symbol == Clutter.KEY_KP_Enter)
+        {
+            this.emit('new_task', entry.get_text());
+            entry.set_text('');
+        }
     }
-
 }
