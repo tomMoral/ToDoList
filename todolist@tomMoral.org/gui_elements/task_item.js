@@ -31,22 +31,27 @@ TaskItem.prototype = {
     _init: function(task){
         PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
         this.task = task;
+        this.connections = []
 
         // Set layout manager
         this.actor.add_style_class_name('task-item');
         this.actor.set_y_expand(true);
         this.actor.set_layout_manager(new Clutter.BoxLayout());
 
-        // Add a Label to the layout to display the task
-        this._label = new St.Label({ 
+        // Add an editable lbel to the layout to display the task
+        this._label = new St.Entry({ 
             style_class: 'task-label', 
-            text: this.task.name
+            text: this.task.name,
+            can_focus: true
         });
-        this._label.set_y_expand(true);
-        this.connection_clik = this.actor.connect(
-            'event', Lang.bind(this, this._clicked)
-        );
         this.actor.add_actor(this._label);
+
+        // Create connection for rename and clicks
+        let _ct = this._label.clutter_text;
+        let conn = _ct.connect('button_release_event', Lang.bind(this, this._clicked));
+        this.connections.push([_ct, conn]);
+        conn = _ct.connect('key_focus_out', Lang.bind(this, this._rename));
+        this.connections.push([_ct, conn]);
 
         // Add a delete button for each item and connect it to 
         this._del_btn = new St.Button({
@@ -55,15 +60,17 @@ TaskItem.prototype = {
         });
         let logo = new St.Icon({icon_size: 10, gicon: GTK_CLOSE_ICON});
         this._del_btn.add_actor(logo);
-        this.connection_del = this._del_btn.connect(
-            'clicked',  Lang.bind(this, this._emit_delete)
-        );
         this.actor.add_actor(this._del_btn);
+
+        // Create connection for delete button
+        conn = this._del_btn.connect('clicked',  Lang.bind(this, this._emit_delete));
+        this.connections.push([this._del_btn, conn]);
 
     },
     destroy: function(){
-        this._del_btn.disconnect(this.connection_del);
-        this._label.disconnect(this.connection_click);
+        for each (var connection in this.connections.reverse())
+            connection[0].disconnect(connection[1]);
+        this.connections.length = 0;
         this.actor.destroy();
     },
     isEntry: function(){
@@ -74,31 +81,22 @@ TaskItem.prototype = {
         this.destroy();
     },
     _clicked : function(actor, ev){
-        // Check that the event is a click as all events
-        // are redirected to this slot.
-        if(ev.type() != Clutter.EventType.BUTTON_RELEASE)
-            return;
-
         // Add rename on double click
-        if (ev.get_click_count() == 2){
-            this._getTopMenu().close();
-            let mod = new RenameDialog(this.task.name);
-            mod.set_callback(Lang.bind(this, this._rename));
-            mod.open();
-        }
+        if (ev.get_click_count() == 2)
+            debug("Double click");
     },
-    _rename : function(name){
+    _rename : function(){
         // Rename the task and notify the todolist so
-        // the todolist is updated.
-        if(name == this.task.name || name.length == 0){
-            return;
-        }
+        // it is updated.
+        name = this._label.get_text();
 
+        // Return if the name did not changed or is not set
+        if(name == this.task.name || name.length == 0)  
+            return;
+
+        debug("Rename task" + this.task.name + " to " + name);
         // Emit signal so todolist clean up
         this.task.name = name;
         this.emit('name_changed');
-
-        // Change the class variables
-        this._label.set_text(name);
     }
 }

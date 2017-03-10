@@ -120,7 +120,7 @@ TodoList.prototype = {
             let symbol = e.get_key_symbol();
             if (symbol == KEY_RETURN || symbol == KEY_ENTER)
             {
-                this._addSection(o.get_text());
+                this._create_section(o.get_text());
                 entryNewTask.set_text('');
             }
         }));
@@ -143,36 +143,32 @@ TodoList.prototype = {
         this.n_tasks = 0;
 
         for(var id in this.sections)
-        {
-            let section = new section_item.SectionItem(this.menu, this.sections, id);
-            this.n_tasks += section.n_tasks;
-            this.todosSec.addMenuItem(section);
-            section.connect('dump_signal', Lang.bind(this, function(item, redraw){
-                debug('Catch dump signal');
-                this._dump(redraw);
-            }));
-            section.connect('supr_signal', Lang.bind(this, function(item, name, id){
-                debug('Catch supr signal');
-                this._removeSection(name, id);
-            }));
-            section.connect('task_count_changed', Lang.bind(this, function(item, diff){
-                debug('Task count changed: '+ diff);
-                this.n_tasks -= diff;
-                this.buttonText.set_text("ToDo ("+this.n_tasks+")");
-            }));
-            section.connect('name_changed', Lang.bind(this, function(o, oldSec, newSec){
-                debug(oldSec + ' || ' + newSec);
-                this._removeSection(oldSec);
-                this._addSection(newSec);
-            }));
-        }
+            this._add_section(this.sections[id]);
+        this._set_text();
 
-        // Update status button
-        this.buttonText.set_text("ToDo ("+this.n_tasks+")");
 
         // Restore hint text
         this.newTask.hint_text = _("New task...");
 
+    },
+    _add_section: function(section){
+        let item = new section_item.SectionItem(section);
+        this.todosSec.addMenuItem(item);
+
+        this.n_tasks += item.n_tasks;
+
+        item.connect('dump_signal', Lang.bind(this, this._dump));
+        item.connect('supr_signal', Lang.bind(this, this._remove_section));
+        item.connect('task_count_changed', Lang.bind(this, this._update_counter));
+    },
+    _update_counter: function(item, diff)
+    {
+        this.n_tasks -= diff;
+        this._set_text();
+    },
+    _set_text: function(){
+        // Update status button
+        this.buttonText.set_text("ToDo ("+this.n_tasks+")");
     },
     _clear : function(){
         for each (var section in this.todosSec.menu){
@@ -181,7 +177,7 @@ TodoList.prototype = {
         }
         this.todosSec.removeAll();
     },
-    _addSection : function(text){
+    _create_section : function(text){
         // Don't add empty task
         if (text == '' || text == '\n')
             return;
@@ -196,39 +192,45 @@ TodoList.prototype = {
 
         this.sections[id] = section;
         this.next_id += 1;
-        this._dump(true);
+        this._dump();
+
+        // Add the section to the UI
+        this._add_section(section);
 
     },
 
     // Remove section 'text' from the section file
-    _removeSection : function(text, id){
-        delete this.sections[id];
-        this._dump(true);
-    },
-    _dump: function(redraw=false){
-        let file = this.dbFile
-        let f = Gio.file_new_for_path(file);
-        let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
-        Shell.write_string_to_stream (out, JSON.stringify(this.sections));
-        out.close(null);
+    _remove_section : function(o, section){
+        // Remove the section from the internal db and 
+        // synchronize it with the permanent JSON file
+        delete this.sections[section.id];
+        this._dump();
 
-        if(redraw){
-            debug("Call dump with redraw = "+ redraw);
-            this._fill_ui();
-        }
+        // clean-up the section
+        section.destroy();
+    },
+    _dump: function(){
+        // Open dbFile and dump our JSON todolist
+        let f = Gio.file_new_for_path(this.dbFile);
+        let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
+        Shell.write_string_to_stream(out, JSON.stringify(this.sections));
+        out.close(null);
     },
     _load: function(){
-        let file = this.dbFile
-        // Check if file exists
-        if (!GLib.file_test(file, GLib.FileTest.EXISTS))
-            GLib.file_set_contents(file, BASE_JSON);
-        let content = Shell.get_file_contents_utf8_sync(file);
+        // Check if the dbFile exists. If not, create a basic one
+        if (!GLib.file_test(this.dbFile, GLib.FileTest.EXISTS))
+            GLib.file_set_contents(this.dbFile, BASE_JSON);
+
+        // Load the content of the file and parse it with JSON.
+        let content = Shell.get_file_contents_utf8_sync(this.dbFile);
         this.sections = JSON.parse(content);
+
+        // compute the next id to avoid collapse in our the todolist
         this.next_id = 0;
         for (var id in this.sections){
             this.next_id = Math.max(this.next_id, id);
         }
-        this.next_id += 1;
+        this.next_id ++;
     },
     _enable : function() {
         // Conect file 'changed' signal to _refresh
@@ -254,9 +256,8 @@ TodoList.prototype = {
     },
     _onOpenStateChanged: function(state, s){
         if(s)
-            for each (var item in this.todosSec._getMenuItems()){
-                    item.menu.close();
-                }
+            for each (var item in this.todosSec._getMenuItems())
+                item.menu.close();
     }
 
 

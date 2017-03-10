@@ -26,75 +26,75 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 // TodoList object
-function SectionItem(parent_menu, sections, id)
+function SectionItem(section)
 {
-    this._init(parent_menu, sections, id);
+    this._init(section);
 }
 
 SectionItem.prototype = {
     __proto__ : PopupMenu.PopupSubMenuMenuItem.prototype,
-    _init: function(parent_menu, sections, id)
+    _init: function(section)
     {
-        debug("section : "+ id);
-        this.sections = sections;
-        this.section = sections[id];
-        let section = this.section;
+        this.section = section;
 
         debug("Got section with name: "+ section.name);
         this.id = section.id;
         this.name = section.name;
         this.tasks = section.tasks;
 
-        this.parent_menu = parent_menu;
-
         // Fill section from the associated file
         this.n_tasks = 0;
         this.metaConn = [];
+        this.connections = [];
 
 
         PopupMenu.PopupSubMenuMenuItem.prototype._init.call(this, this.name);
+
+        // Add an editable label to display the section title
+        this._label = new St.Entry({ 
+            style_class: 'task-label', 
+            text: this.section.name,
+            can_focus: true
+        });
+        // add our label by replacing the default label in PopupSubMenuMenuItem
+        this.actor.add_child(this._label);
+        this.actor.set_child_above_sibling(this._label, this.label);
+        this.actor.remove_actor(this.label);
+        this.label.destroy();
+
+        // Create connection for rename and clicks
+        let _ct = this._label.clutter_text;
+        let conn = _ct.connect('key_focus_out', Lang.bind(this, this._rename));
+        this.connections.push([_ct, conn]);
+
+        // Add a delete button that will be showed if there is no more task in
+        // the section.
+        this.delete_btn = new St.Button({ style_class: 'sec_supr', label:''});
         let logo = new St.Icon({icon_size: 12, gicon: GTK_CLOSE_ICON,
                                 style_class: 'icon_sec'});
-        this.delete_btn = new St.Button({ style_class: 'sec_supr', label:''});
         this.delete_btn.add_actor(logo);
         this.actor.add_actor(this.delete_btn);
-        this._draw_section('init', false);
-        this.metaConn.push(this.actor.connect('button-release-event', 
-                                              Lang.bind(this, this._clicked)));
-        this.metaConn.push(this.actor.connect('key-release-event',  
-                           Lang.bind(this, this._key_pressed)));
-        this.metaConn.push(this.delete_btn.connect('clicked',
-                           Lang.bind(this, this._supr_call)));
-    },
-    _key_pressed : function(actor, ev)
-    {
-        let symbol = ev.get_key_symbol();
-        if (symbol == KEY_DELETE && this.n_tasks == 0)
-        {
-            debug('Delete key press in section');
-            this._supr_call();
-        }
-    },
-    _clicked : function(actor, ev)
-    {
-        var double_click = ev.get_click_count() == 2;
+        // Create connection for delete button
+        conn = this.delete_btn.connect('clicked', Lang.bind(this, this._supr_call));
+        this.connections.push([this.delete_btn, conn]);
 
-        // Add rename on double click
-        if (double_click)
-        {
-            this.parent_menu.close();
-            let mod = new RenameDialog(this.name);
-            mod.set_callback(Lang.bind(this, this._rename));
-            mod.open();
-        }
+        // Draw the section
+        this._draw_section();
     },
-    _draw_section: function(caller, redraw=true)
+    destroy: function(){
+        // Clean up all the connection
+        for each (var connection in this.connections.reverse())
+            connection[0].disconnect(connection[1]);
+        this.connections.length = 0;
+        this.actor.destroy();
+        this.disconnectAll();
+        debug("Section clean-up done")
+    },
+    _draw_section: function()
     {
-        debug('Draw section for '+ caller);
         this._clear();
 
         // Initiate the task count
-        let diff = this.n_tasks;
         this.n_tasks = 0;
 
         // Add tasks item in the section
@@ -104,21 +104,16 @@ SectionItem.prototype = {
         // Update the title of the section with the right task count
         // and notify the todolist applet if this count changed.
         this._set_text();
-        diff = diff - this.n_tasks;
-        if(redraw && diff != 0)
-            this.emit('task_count_changed', diff);
 
         // If there is no task in the section,show the delete button.
         if(this.n_tasks == 0)
             this.delete_btn.show();
 
-        if(redraw)
-            this.menu.open();
-
+        // Add the a EntryItem to allow adding new tasks in this section.
         let entry_task = new EntryItem();
-        entry_task.connect('new_task', Lang.bind(this, this._create_task));
+        let conn = entry_task.connect('new_task', Lang.bind(this, this._create_task));
+        this.connections.push([entry_task, conn])
         this.menu.addMenuItem(entry_task);
-        return this;
     },
     _add_task : function(i)
     {
@@ -126,8 +121,10 @@ SectionItem.prototype = {
         let taskItem = new TaskItem.TaskItem(this.section.tasks[i]);
 
         // connect the signals to 
-        taskItem.connect('name_changed', Lang.bind(this, this._dump));
-        taskItem.connect('supr_signal', Lang.bind(this, this._remove_task));
+        let conn = taskItem.connect('name_changed', Lang.bind(this, this._dump));
+        this.connections.push([taskItem, conn])
+        conn = taskItem.connect('supr_signal', Lang.bind(this, this._remove_task));
+        this.connections.push([taskItem, conn])
 
         // Add the task to the section
         this.menu.addMenuItem(taskItem, i);
@@ -177,15 +174,16 @@ SectionItem.prototype = {
         this._dump();
 
     },
-    _rename : function(text)
+    _rename : function()
     {
+        name = this._label.get_text().replace(/ +\([0-9]+\)$/, "")
         // No change needed
-        if(text == this.name || text.length == 0)
+        if(name == this.name || name.length == 0)
             return;
 
         // Update
-        this.section.name = text;
-        this.name = text;
+        this.section.name = name;
+        this.name = name;
         this._set_text();
         this._dump();
     },
@@ -202,21 +200,13 @@ SectionItem.prototype = {
         this.menu.removeAll();
 
     },
-    _destroy: function(){
-        for each (var conn in this.metaConn){
-            this.disconnect(conn);
-            this.metaConn.pop();
-        }
-        debug("Section clean-up done")
-    },
     _supr_call : function()
     {
-        debug('Emit supr signal');
-        this.emit('supr_signal', this.section.name, this.id);
+        this.emit('supr_signal', this);
     },
     _set_text : function(){
         // Set text of the label with the counter of tasks
-        this.label.set_text(this.section.name + " (" + this.n_tasks + ")");
+        this._label.set_text(this.section.name + " (" + this.n_tasks + ")");
     },
     _dump : function(){
         this.emit("dump_signal", false);
