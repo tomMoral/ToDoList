@@ -136,7 +136,7 @@ TodoList.prototype = {
             let symbol = e.get_key_symbol();
             if (symbol == KEY_RETURN || symbol == KEY_ENTER)
             {
-                this._addSection(o.get_text());
+                this._create_section(o.get_text());
                 entryNewTask.set_text('');
             }
         }));
@@ -159,59 +159,47 @@ TodoList.prototype = {
         this.n_tasks = 0;
 
         for(var id in this.sections)
-        {
-            let section = new section_item.SectionItem(this, this.sections, id);
-            this.n_tasks += section.n_tasks;
-            this.todosSec.addMenuItem(section);
-            section.connect('dump_signal', Lang.bind(this, function(item, redraw){
-                debug('Catch dump signal');
-                this._dump(redraw);
-            }));
-            section.connect('supr_signal', Lang.bind(this, function(item, name, id){
-                debug('Catch supr signal');
-                this._removeSection(name, id);
-            }));
-            section.connect('task_count_changed', Lang.bind(this, function(item, diff){
-                debug('Task count changed: '+ diff);
-                this.n_tasks -= diff;
-                this.buttonText.set_text("ToDo ("+this.n_tasks+")");
-            }));
-            section.connect('name_changed', Lang.bind(this, function(o, oldSec, newSec){
-                debug(oldSec + ' || ' + newSec);
-                this._removeSection(oldSec);
-                this._addSection(newSec);
-            }));
-        }
+            this._add_section(this.sections[id]);
 
-        var separator = new PopupMenu.PopupSeparatorMenuItem();
-        this.todosSec.addMenuItem(separator);
-        separator = new PopupMenu.PopupMenuItem("Projects");
-        separator.label.add_style_class_name("separator-project")
-        this.todosSec.addMenuItem(separator);
 
         debug("##### PROJECTS #####")
+        this.separator = new PopupMenu.PopupSeparatorMenuItem();
+        this.todosSec.addMenuItem(this.separator);
+
+        let named_separator = new PopupMenu.PopupMenuItem("Projects");
+        named_separator.label.add_style_class_name("separator-project")
+        this.todosSec.addMenuItem(named_separator);
+
         for(var id in this.projects)
-        {
-            let section = new section_item.SectionItem(this, this.projects, id);
-            this.n_tasks += section.n_tasks;
-            this.todosSec.addMenuItem(section);
-        }
+            this._add_section(this.projects[id], false);
 
         // Update status button
-        this.buttonText.set_text("ToDo ("+this.n_tasks+")");
+        this._set_text();
+
 
         // Restore hint text
         this.newTask.hint_text = _("New task...");
 
     },
-    _clear : function(){
-        for each (var section in this.todosSec.menu){
-            section._clear();
-            section._terminate();
+    _add_section: function(section, editable=true){
+        let position = null;
+        if (this.separator != null && editable)
+            position = this.separator._parent._getMenuItems().indexOf(this.separator);
+
+        let item = new section_item.SectionItem(section, editable);
+        this.todosSec.addMenuItem(item, position);
+
+        this.n_tasks += item.n_tasks;
+
+        if (editable)
+        {
+            item.connect('dump_signal', Lang.bind(this, this._dump));
+            item.connect('supr_signal', Lang.bind(this, this._remove_section));
+            item.connect('task_count_changed', Lang.bind(this, this._update_counter));
         }
-        this.todosSec.removeAll();
+        return item;
     },
-    _addSection : function(text){
+    _create_section : function(text){
         // Don't add empty task
         if (text == '' || text == '\n')
             return;
@@ -226,40 +214,64 @@ TodoList.prototype = {
 
         this.sections[id] = section;
         this.next_id += 1;
-        this._dump(true);
+        this._dump();
 
+        // Add the section to the UI
+        this._add_section(section);
+
+    },
+    _update_counter: function(item, diff)
+    {
+        this.n_tasks -= diff;
+        this._set_text();
+    },
+    _set_text: function(){
+        // Update status button
+        this.buttonText.set_text("ToDo ("+this.n_tasks+")");
+    },
+    _clear : function(){
+        for each (var section in this.todosSec.menu){
+            section._clear();
+            section._terminate();
+        }
+        this.todosSec.removeAll();
     },
 
     // Remove section 'text' from the section file
-    _removeSection : function(text, id){
-        delete this.sections[id];
-        this._dump(true);
-    },
-    _dump: function(redraw=false){
-        let file = this.dbFile
-        let f = Gio.file_new_for_path(file);
-        let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
-        Shell.write_string_to_stream (out, JSON.stringify(this.sections));
-        out.close(null);
+    _remove_section : function(item, section){
+        // Remove the section from the internal db and 
+        // synchronize it with the permanent JSON file
+        debug("Remove section: " + section.name)
+        delete this.sections[section.id];
+        this._dump();
 
-        if(redraw){
-            debug("Call dump with redraw = "+ redraw);
-            this._fill_ui();
-        }
+        // clean-up the section item
+        item.destroy();
+    },
+    _dump: function(){
+        // Open dbFile and dump our JSON todolist
+        let f = Gio.file_new_for_path(this.dbFile);
+        let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
+        Shell.write_string_to_stream(out, JSON.stringify(this.sections));
+        out.close(null);
     },
     _load: function(){
-        let file = this.dbFile
-        // Check if file exists
-        if (!GLib.file_test(file, GLib.FileTest.EXISTS))
-            GLib.file_set_contents(file, BASE_JSON);
-        let content = Shell.get_file_contents_utf8_sync(file);
+        // Check if the dbFile exists. If not, create a basic one
+        if (!GLib.file_test(this.dbFile, GLib.FileTest.EXISTS))
+            GLib.file_set_contents(this.dbFile, BASE_JSON);
+
+        // Load the content of the file and parse it with JSON.
+        let content = Shell.get_file_contents_utf8_sync(this.dbFile);
         this.sections = JSON.parse(content);
+
+        // compute the next id to avoid collapse in our the todolist
         this.next_id = 0;
         for (var id in this.sections){
             this.next_id = Math.max(this.next_id, id);
         }
-        this.next_id += 1;
+        this.next_id ++;
 
+        // also load projects
         this.projects = get_project_tasks(PROJECTS);
     },
     _reload_projects: function(){
@@ -267,7 +279,7 @@ TodoList.prototype = {
         this._fill_ui();
     },
     _enable : function() {
-        // Conect file 'changed' signal to _refresh
+        // Connect file 'changed' signal to _refresh
         // let fileM = Gio.file_new_for_path(this.dbFile);
         // this.monitor = fileM.monitor(Gio.FileMonitorFlags.NONE, null);
         // this.monitor.connect('changed', Lang.bind(this, this._fill_ui));

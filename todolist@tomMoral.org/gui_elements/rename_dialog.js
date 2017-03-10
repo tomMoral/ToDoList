@@ -15,7 +15,7 @@ const KEY_ENTER  = 65421;
 
 
 
-// TodoList object
+// Rename dialog object
 function RenameDialog(name){
     this.conn = null;
     this._init(name);
@@ -65,9 +65,8 @@ RenameDialog.prototype = {
         };
         this.setButtons([ok_button, cancel_button]);
         this.setInitialKeyFocus(this.renameEntry);
-        debug('' + this._initialKeyFocus)
         this.connect('opened', Lang.bind(this, function(){
-            debug('grab focus!!!!!!!!!!!!!!!!!');
+            debug('Rename dialog grab focus');
             this.renameEntry.grab_key_focus();
         }));
     },

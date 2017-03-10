@@ -80,11 +80,18 @@
 
 .task-item{
 	border: none;
-	max-width: 100px;
+	max-width: 150px;
 }
 
 .separator-project{
 	text-align: center;
 	font-weight: bold;
 	text-decoration: underline;
+}
+
+.task-label{
+	background: transparent;
+	border: none;
+	padding: 0, 0, 0, 0;
+	margin: 0, 0, 0, 0;
 }
