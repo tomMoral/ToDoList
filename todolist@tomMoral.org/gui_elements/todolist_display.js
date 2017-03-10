@@ -205,7 +205,7 @@ TodoList.prototype = {
         delete this.sections[id];
         this._dump(true);
     },
-    _dump: function(redraw){
+    _dump: function(redraw=false){
         let file = this.dbFile
         let f = Gio.file_new_for_path(file);
         let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
@@ -239,7 +239,6 @@ TodoList.prototype = {
     },
     _disable : function() {
         // Stop monitoring file
-        // this.monitor.cancel();
         this._clear();
         Main.wm.removeKeybinding('open-todolist');
         debug('clean up for todolist done');
