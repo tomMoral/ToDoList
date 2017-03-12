@@ -48,6 +48,7 @@ TaskItem.prototype = {
 
         // Create connection for rename and clicks
         let _ct = this._label.clutter_text;
+        _ct.set_line_wrap(true);
         let conn = _ct.connect('button_release_event', Lang.bind(this, this._clicked));
         this.connections.push([_ct, conn]);
         conn = _ct.connect('key_focus_out', Lang.bind(this, this._rename));
