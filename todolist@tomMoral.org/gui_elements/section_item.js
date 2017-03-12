@@ -92,9 +92,11 @@ SectionItem.prototype = {
         this.connections.length = 0;
         this.disconnectAll();
 
-
-        this.entry_task.destroy();
+        // Remove all sub items
+        if (this.entry_task != null)
+            this.entry_task.destroy();
         this.actor.destroy();
+
         debug("Section clean-up done")
     },
     _draw_section: function()
