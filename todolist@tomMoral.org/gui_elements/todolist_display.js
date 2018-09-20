@@ -171,7 +171,7 @@ TodoList.prototype = {
         this.buttonText.set_text("ToDo ("+this.n_tasks+")");
     },
     _clear : function(){
-        for (var section of this.todosSec.menu){
+        for (var section of this.todosSec._getMenuItems()){
             section._clear();
             section._terminate();
         }
