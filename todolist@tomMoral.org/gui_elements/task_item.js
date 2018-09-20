@@ -69,7 +69,7 @@ TaskItem.prototype = {
 
     },
     destroy: function(){
-        for each (var connection in this.connections.reverse())
+        for (var connection of this.connections.reverse())
             connection[0].disconnect(connection[1]);
         this.connections.length = 0;
         this.actor.destroy();

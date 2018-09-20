@@ -85,7 +85,7 @@ TodoList.prototype = {
                 return;
             todosSec.one = true;
 
-            for each (var item in todosSec._getMenuItems()){
+            for (var item of todosSec._getMenuItems()){
                 item.menu.close();
             }
             if(subMenu != null)
@@ -171,7 +171,7 @@ TodoList.prototype = {
         this.buttonText.set_text("ToDo ("+this.n_tasks+")");
     },
     _clear : function(){
-        for each (var section in this.todosSec.menu){
+        for (var section of this.todosSec.menu){
             section._clear();
             section._terminate();
         }
@@ -256,7 +256,7 @@ TodoList.prototype = {
     },
     _onOpenStateChanged: function(state, s){
         if(s)
-            for each (var item in this.todosSec._getMenuItems())
+            for (var item of this.todosSec._getMenuItems())
                 item.menu.close();
     }
 
