@@ -34,11 +34,18 @@ const BASE_JSON = '{"0": {"id": "0", "name": "Section1", "tasks": []}}';
 const PROJECTS = [
     {
         "dir":"/home/tom/Work/phd/Loptim",
-        "type": "latex"
+        "type": "latex",
+        "extensions": [".tex"]
     },
+    // {
+    //     "dir":"/home/tom/Work/communications/thesis",
+    //     "type": "latex",
+    //     "extensions": [".tex"]
+    // },
     {
         "dir":"/home/tom/Work/prog/loky",
-        "type": "python"
+        "type": "python",
+        "extensions": [".py"]
     }
 ];
 
@@ -53,7 +60,10 @@ function TodoList(metadata)
 TodoList.prototype = {
     __proto__: PanelMenu.Button.prototype,
 
+    // Declare internal variable
+    watched_extensions : new Set(),
     _init : function(){
+
         // Tasks file
         this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
         if(! GLib.file_test(this.dirPath, GLib.FileTest.EXISTS)){
@@ -100,7 +110,7 @@ TodoList.prototype = {
                 return;
             todosSec.one = true;
 
-            for each (var item in todosSec._getMenuItems()){
+            for (var item in todosSec._getMenuItems()){
                 if (item.menu != null)
                     item.menu.close();
             }
@@ -163,8 +173,8 @@ TodoList.prototype = {
 
 
         debug("##### PROJECTS #####")
-        this.separator = new PopupMenu.PopupSeparatorMenuItem();
-        this.todosSec.addMenuItem(this.separator);
+        let separator = new PopupMenu.PopupSeparatorMenuItem();
+        this.todosSec.addMenuItem(separator);
 
         let named_separator = new PopupMenu.PopupMenuItem("Projects");
         named_separator.label.add_style_class_name("separator-project")
@@ -182,12 +192,13 @@ TodoList.prototype = {
 
     },
     _add_section: function(section, editable=true){
-        let position = null;
-        if (this.separator != null && editable)
-            position = this.separator._parent._getMenuItems().indexOf(this.separator);
-
         let item = new section_item.SectionItem(section, editable);
-        this.todosSec.addMenuItem(item, position);
+
+        // if (this.separator != null && editable){
+        //     let position = this.separator._parent._getMenuItems().indexOf(this.separator);
+        //     this.todosSec.addMenuItem(item, position);
+        // } else
+        this.todosSec.addMenuItem(item);
 
         this.n_tasks += item.n_tasks;
 
@@ -230,7 +241,7 @@ TodoList.prototype = {
         this.buttonText.set_text("ToDo ("+this.n_tasks+")");
     },
     _clear : function(){
-        for each (var section in this.todosSec.menu){
+        for (var section in this.todosSec.menu){
             section._clear();
             section._terminate();
         }
@@ -288,10 +299,15 @@ TodoList.prototype = {
             let project = PROJECTS[i];
             let dir = Gio.file_new_for_path(project.dir);
             let monitor = dir.monitor(Gio.FileMonitorFlags.NONE, null);
-            monitor.set_rate_limit(400);
+            // Set rate limit to 10s
+            monitor.set_rate_limit(10000);
             monitor.connect("changed", Lang.bind(this, this._check_files));
             this.monitors[i] = monitor;
+
+            for (var ext in PROJECTS[i].extensions)
+                this.watched_extensions.add(ext)
         }
+        debug("Watching extensions: "+ this.watched_extensions.values())
 
     },
     _disable : function() {
@@ -301,12 +317,16 @@ TodoList.prototype = {
             monitor.cancel();
         }
         this._clear();
+        this.watched_extensions.clear();
         Main.wm.removeKeybinding('open-todolist');
         debug('clean up for todolist done');
     },
     _check_files: function(monitor, file, file2, event_type){
-        debug("Check file "+file.get_path());
-        debug(event_type);
+        let fname = file.get_basename()
+        if (fname[0] === ".")
+            return
+        debug("Check file " + fname);
+        
 
         if (event_type == Gio.FileMonitorEvent.DELETED ||
             event_type == Gio.FileMonitorEvent.CHANGES_DONE_HINT
@@ -327,7 +347,7 @@ TodoList.prototype = {
     },
     _onOpenStateChanged: function(state, s){
         if(s)
-            for each (var item in this.todosSec._getMenuItems())
+            for (var item in this.todosSec._getMenuItems())
                 if (item.menu != null)
                     item.menu.close();
     }
