@@ -1,15 +1,13 @@
 {
-  "description": "Manage todo list with an applet\n\n* Add and remove task on your list in different sections.\n* Click an item to rename it.\n* Access the extension using Hot-Key (default: Ctrl+Space)\n", 
-  "name": "Section Todo List", 
+  "description": "Manage todo list with an applet\n\n* Add and remove task on your list in different sections.\n* Click an item to rename it.\n* Access the extension using Hot-Key (default: Ctrl+Space)\n",
+  "name": "Section Todo List",
   "shell-version": [
-      "3.18",
-      "3.20",
-      "3.22",
       "3.24",
       "3.26",
       "3.28",
-      "3.30"
-  ], 
-  "url": "https://github.com/tomMoral/ToDoList", 
+      "3.30",
+      "3.32"
+  ],
+  "url": "https://github.com/tomMoral/ToDoList",
   "uuid": "todolist@tomMoral.org"
 }
