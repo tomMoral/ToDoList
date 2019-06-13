@@ -19,17 +19,11 @@ const MAX_LENGTH = 75;
 
 
 // TodoList object
-function EntryItem(){
-    this.conn = null;
-    this._init();
-}
-
-EntryItem.prototype = {
-    __proto__ : PopupMenu.PopupBaseMenuItem.prototype,
-    _init: function()
+class EntryItem extends PopupMenu.PopupBaseMenuItem{
+    constructor()
     {
         // Call base constructor and set style_class_name
-        PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
+        super();
         this.actor.add_style_class_name('task-entry');
 
         // Add a text entry in the BaseMenuItem layout
@@ -45,17 +39,17 @@ EntryItem.prototype = {
         this.connection_ENT = this.ENT.connect(
             'key-press-event', Lang.bind(this, this._on_keypress_event));
         this.actor.add_actor(this.newTask);
-    },
-    destroy: function()
+    }
+    destroy()
     {
         this.ENT.disconnect(this.connection_ENT);
         PopupMenu.PopupBaseMenuItem.prototype.destroy.call(this);
-    },
-    isEntry: function()
+    }
+    isEntry()
     {
         return true;
-    },
-    _on_keypress_event: function(entry, event)
+    }
+    _on_keypress_event(entry, event)
     {
         // If the key press is Enter or Return,
         // add the new task to the todolist

@@ -26,18 +26,14 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 // TodoList object
-function SectionItem(section)
-{
-    this._init(section);
-}
+var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
 
-SectionItem.prototype = {
-    __proto__ : PopupMenu.PopupSubMenuMenuItem.prototype,
-    _init: function(section)
+    constructor(section)
     {
+        super(section.name);
         this.section = section;
 
-        debug("Got section with name: "+ section.name);
+        debug("Got section with name: " + section.name);
         this.id = section.id;
         this.name = section.name;
         this.tasks = section.tasks;
@@ -47,12 +43,9 @@ SectionItem.prototype = {
         this.metaConn = [];
         this.connections = [];
 
-
-        PopupMenu.PopupSubMenuMenuItem.prototype._init.call(this, this.name);
-
         // Add an editable label to display the section title
-        this._label = new St.Entry({ 
-            style_class: 'task-label', 
+        this._label = new St.Entry({
+            style_class: 'task-label',
             text: this.section.name,
             can_focus: true
         });
@@ -80,14 +73,13 @@ SectionItem.prototype = {
 
         // Draw the section
         this._draw_section();
-    },
-    destroy: function(){
-        // Clean up all the connection
-        for(var connection of this.connections.reverse())
-            connection[0].disconnect(connection[1]);
+    }
+    destroy(){
+        debug("yo")
 
         this.connections.length = 0;
         this.disconnectAll();
+        debug("All disconnected")
 
         // Remove all sub items
         if (this.entry_task != null)
@@ -95,8 +87,8 @@ SectionItem.prototype = {
         this.actor.destroy();
 
         debug("Section clean-up done")
-    },
-    _draw_section: function()
+    }
+    _draw_section()
     {
         this._clear();
 
@@ -120,13 +112,13 @@ SectionItem.prototype = {
         let conn = entry_task.connect('new_task', Lang.bind(this, this._create_task));
         this.connections.push([entry_task, conn])
         this.menu.addMenuItem(entry_task);
-    },
-    _add_task : function(i)
+    }
+    _add_task (i)
     {
         // Create a task item and set its callback
         let taskItem = new TaskItem.TaskItem(this.section.tasks[i]);
 
-        // connect the signals to 
+        // connect the signals to
         let conn = taskItem.connect('name_changed', Lang.bind(this, this._dump));
         this.connections.push([taskItem, conn])
         conn = taskItem.connect('supr_signal', Lang.bind(this, this._remove_task));
@@ -141,8 +133,8 @@ SectionItem.prototype = {
         if(this.n_tasks == 1)
             this.delete_btn.hide();
 
-    },
-    _create_task : function(item, text)
+    }
+    _create_task (item, text)
     {
         // Create a new task to add in the todolist
         // and displays it while updating the counters
@@ -153,17 +145,17 @@ SectionItem.prototype = {
             return;
 
         // New task object
-        task = {name: text}
+        let task = {name: text};
 
-        id = this.tasks.push(task) - 1;
+        let id = this.tasks.push(task) - 1;
         this._add_task(id);
         this._set_text();
 
         debug("Emit signals");
         this.emit('task_count_changed', -1);
         this._dump();
-    },
-    _remove_task : function (o, task)
+    }
+    _remove_task  (o, task)
     {
         // Remove task from the section
         let id = this.section.tasks.indexOf(task);
@@ -179,10 +171,10 @@ SectionItem.prototype = {
         this.emit('task_count_changed', 1);
         this._dump();
 
-    },
-    _rename : function()
+    }
+    _rename ()
     {
-        name = this._label.get_text().replace(/ +\([0-9]+\)$/, "")
+        let name = this._label.get_text().replace(/ +\([0-9]+\)$/, "")
         // No change needed
         if(name == this.name || name.length == 0)
             return;
@@ -192,8 +184,8 @@ SectionItem.prototype = {
         this.name = name;
         this._set_text();
         this._dump();
-    },
-    _clear : function()
+    }
+    _clear ()
     {
         let item = null;
         let items = this.menu._getMenuItems();
@@ -205,16 +197,42 @@ SectionItem.prototype = {
         }
         this.menu.removeAll();
 
-    },
-    _supr_call : function()
+    }
+    _supr_call ()
     {
         this.emit('supr_signal', this);
-    },
-    _set_text : function(){
+    }
+    _set_text (){
         // Set text of the label with the counter of tasks
         this._label.set_text(this.section.name + " (" + this.n_tasks + ")");
-    },
-    _dump : function(){
+    }
+    _dump (){
         this.emit("dump_signal", false);
     }
+    _disconnect(){
+        // Clean up all the connection
+        for(var connection of this.connections.reverse()){
+            debug("Connection " + connection);
+            try{
+                connection[0].disconnect(connection[1]);
+            }
+            catch(error){
+                debug(error);
+            }
+        }
+    }
 }
+
+
+// // In gnome-shell >= 3.32 this class and several others became GObject
+// // subclasses. We can account for this change in a backwards-compatible way
+// // simply by re-wrapping our subclass in `GObject.registerClass()`
+// const Config = imports.misc.config;
+// let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
+// if (shellMinorVersion > 30) {
+//     const GObject = imports.gi.GObject;
+//     SectionItem = GObject.registerClass(
+//         {GTypeName: 'SectionItem'},
+//         SectionItem
+//     );
+// }
