@@ -20,16 +20,10 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(
     Extension.path + "/icons/gtk-close.png");
 
 // TaskItem object wrapper
-function TaskItem(task){
-    this.conn = null;
-    this._init(task);
-}
+var TaskItem = class TaskItem extends PopupMenu.PopupBaseMenuItem {
 
-TaskItem.prototype = {
-    // inherit from a PopupBaseMenuItem
-    __proto__ : PopupMenu.PopupBaseMenuItem.prototype,
-    _init: function(task){
-        PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
+    constructor(task){
+        super();
         this.task = task;
         this.connections = []
 
@@ -39,8 +33,8 @@ TaskItem.prototype = {
         this.actor.set_layout_manager(new Clutter.BoxLayout());
 
         // Add an editable lbel to the layout to display the task
-        this._label = new St.Entry({ 
-            style_class: 'task-label', 
+        this._label = new St.Entry({
+            style_class: 'task-label',
             text: this.task.name,
             can_focus: true
         });
@@ -54,7 +48,7 @@ TaskItem.prototype = {
         conn = _ct.connect('key_focus_out', Lang.bind(this, this._rename));
         this.connections.push([_ct, conn]);
 
-        // Add a delete button for each item and connect it to 
+        // Add a delete button for each item and connect it to
         this._del_btn = new St.Button({
             style_class: 'task-supr',
             label: ''
@@ -67,32 +61,33 @@ TaskItem.prototype = {
         conn = this._del_btn.connect('clicked',  Lang.bind(this, this._emit_delete));
         this.connections.push([this._del_btn, conn]);
 
-    },
-    destroy: function(){
-        for (var connection of this.connections.reverse())
+    }
+    destroy(){
+        for (var connection of this.connections.reverse()){
             connection[0].disconnect(connection[1]);
+        }
         this.connections.length = 0;
         this.actor.destroy();
-    },
-    isEntry: function(){
+    }
+    isEntry(){
         return false;
-    },
-    _emit_delete : function(){
+    }
+    _emit_delete (){
         this.emit('supr_signal', this.task);
         this.destroy();
-    },
-    _clicked : function(actor, ev){
+    }
+    _clicked (actor, ev){
         // Add rename on double click
         if (ev.get_click_count() == 2)
             debug("Double click");
-    },
-    _rename : function(){
+    }
+    _rename (){
         // Rename the task and notify the todolist so
         // it is updated.
         name = this._label.get_text();
 
         // Return if the name did not changed or is not set
-        if(name == this.task.name || name.length == 0)  
+        if(name == this.task.name || name.length == 0)
             return;
 
         debug("Rename task" + this.task.name + " to " + name);

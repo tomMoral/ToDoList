@@ -1,15 +1,14 @@
-
-const Meta = imports.gi.Meta;
-const Main = imports.ui.main;
 const St = imports.gi.St;
-const Gtk = imports.gi.Gtk;
-const GLib = imports.gi.GLib;
 const Lang = imports.lang;
+const Gtk = imports.gi.Gtk;
 const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Main = imports.ui.main;
+const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
+const Clutter = imports.gi.Clutter;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
-const Clutter = imports.gi.Clutter;
 
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
@@ -27,18 +26,13 @@ const KEY_RETURN = 65293;
 const KEY_ENTER  = 65421;
 const BASE_JSON = '{"0": {"id": "0", "name": "Section1", "tasks": []}}';
 
+
 // TodoList object
-function TodoList(metadata)
-{
-    this.meta = metadata;
-    this.n_tasks = 0;
-    this._init();
-}
+var TodoList = class TodoList extends PanelMenu.Button {
 
-TodoList.prototype = {
-    __proto__: PanelMenu.Button.prototype,
+    _init(meta){
+        super._init(St.Align.START, "TodoList");
 
-    _init : function(){
         // Tasks file
         this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
         if(! GLib.file_test(this.dirPath, GLib.FileTest.EXISTS)){
@@ -48,26 +42,10 @@ TodoList.prototype = {
         this.dbFile =  this.dirPath + "tasks.json";
         this._load();
 
-        // Button ui
-        PanelMenu.Button.prototype._init.call(this, St.Align.START);
-        this.mainBox = null;
-        this.buttonText = new St.Label({text:_("(...)"), y_align: Clutter.ActorAlign.CENTER});
-        this.buttonText.set_style("text-align:center;");
-        this.actor.add_actor(this.buttonText);
+    }
 
-        this._buildUI();
-        this._fill_ui();
-
-        // Key binding
-        let mode = Shell.ActionMode ? Shell.ActionMode.ALL : Shell.KeyBindingMode.ALL;
-        Main.wm.addKeybinding('open-todolist',
-                              ExtensionSettings,
-                              Meta.KeyBindingFlags.NONE,
-                              mode,
-                              Lang.bind(this, this.signalKeyOpen));
-    },
-    _buildUI: function(){
-        // Destroy previous box         
+    _buildUI(){
+        // Destroy previous box
         if (this.mainBox != null)
             this.mainBox.destroy();
 
@@ -131,27 +109,31 @@ TodoList.prototype = {
         bottomSection.actor.add_style_class_name("newTaskSection");
         this.mainBox.add_actor(bottomSection.actor);
         this.menu.box.add(this.mainBox);
-    },
+    }
 
     // Fill UI with the section items
-    _fill_ui : function(){
+    _fill_ui(){
 
         debug("Fill UI");
-        
+
         // Check if tasks file exists
         this._clear();
         this.n_tasks = 0;
 
-        for(var id in this.sections)
+        for(var id in this.sections){
+            debug(id);
             this._add_section(this.sections[id]);
+        }
+
         this._set_text();
 
 
         // Restore hint text
         this.newTask.hint_text = _("New task...");
 
-    },
-    _add_section: function(section){
+    }
+    _add_section(section){
+        debug(section.name);
         let item = new section_item.SectionItem(section);
         this.todosSec.addMenuItem(item);
 
@@ -160,24 +142,26 @@ TodoList.prototype = {
         item.connect('dump_signal', Lang.bind(this, this._dump));
         item.connect('supr_signal', Lang.bind(this, this._remove_section));
         item.connect('task_count_changed', Lang.bind(this, this._update_counter));
-    },
-    _update_counter: function(item, diff)
+    }
+    _update_counter(item, diff)
     {
         this.n_tasks -= diff;
         this._set_text();
-    },
-    _set_text: function(){
+    }
+    _set_text(){
         // Update status button
         this.buttonText.set_text("ToDo ("+this.n_tasks+")");
-    },
-    _clear : function(){
+    }
+    _clear(){
         for (var section of this.todosSec._getMenuItems()){
+            section._disconnect();
             section._clear();
-            section._terminate();
         }
+        debug('Cleared all sections')
         this.todosSec.removeAll();
-    },
-    _create_section : function(text){
+        debug('remove all objects')
+    }
+    _create_section(text){
         // Don't add empty task
         if (text == '' || text == '\n')
             return;
@@ -197,26 +181,26 @@ TodoList.prototype = {
         // Add the section to the UI
         this._add_section(section);
 
-    },
+    }
 
     // Remove section 'text' from the section file
-    _remove_section : function(o, section){
-        // Remove the section from the internal db and 
+    _remove_section(o, section){
+        // Remove the section from the internal db and
         // synchronize it with the permanent JSON file
         delete this.sections[section.id];
         this._dump();
 
         // clean-up the section
         section.destroy();
-    },
-    _dump: function(){
+    }
+    _dump(){
         // Open dbFile and dump our JSON todolist
         let f = Gio.file_new_for_path(this.dbFile);
         let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
         Shell.write_string_to_stream(out, JSON.stringify(this.sections));
         out.close(null);
-    },
-    _load: function(){
+    }
+    _load(){
         // Check if the dbFile exists. If not, create a basic one
         if (!GLib.file_test(this.dbFile, GLib.FileTest.EXISTS))
             GLib.file_set_contents(this.dbFile, BASE_JSON);
@@ -231,30 +215,47 @@ TodoList.prototype = {
             this.next_id = Math.max(this.next_id, id);
         }
         this.next_id ++;
-    },
-    _enable : function() {
+    }
+    _enable() {
         // Conect file 'changed' signal to _refresh
         // let fileM = Gio.file_new_for_path(this.dbFile);
         // this.monitor = fileM.monitor(Gio.FileMonitorFlags.NONE, null);
         // this.monitor.connect('changed', Lang.bind(this, this._fill_ui));
 
-    },
-    _disable : function() {
+        // Button ui
+        this.mainBox = null;
+        this.buttonText = new St.Label({text:_("(...)"), y_align: Clutter.ActorAlign.CENTER});
+        this.buttonText.set_style("text-align:center;");
+        this.actor.add_actor(this.buttonText);
+
+        this._buildUI();
+        this._fill_ui();
+
+        // Key binding
+        let mode = Shell.ActionMode ? Shell.ActionMode.ALL : Shell.KeyBindingMode.ALL;
+        Main.wm.addKeybinding('open-todolist',
+                              ExtensionSettings,
+                              Meta.KeyBindingFlags.NONE,
+                              mode,
+                              Lang.bind(this, this.signalKeyOpen));
+
+    }
+    _disable() {
         // Stop monitoring file
         this._clear();
         Main.wm.removeKeybinding('open-todolist');
         debug('clean up for todolist done');
-    },
+    }
     // Called when 'open-todolist' is emitted (binded with Lang.bind)
-    signalKeyOpen: function(){
+    signalKeyOpen(){
         if (this.menu.isOpen)
             this.menu.close();
         else{
             this.menu.open();
             this.newTask.grab_key_focus();
         }
-    },
-    _onOpenStateChanged: function(state, s){
+    }
+    _onOpenStateChanged(state, s){
         if(s)
             for (var item of this.todosSec._getMenuItems())
                 item.menu.close();
@@ -262,3 +263,17 @@ TodoList.prototype = {
 
 
 }
+
+// In gnome-shell >= 3.32 this class and several others became GObject
+// subclasses. We can account for this change in a backwards-compatible way
+// simply by re-wrapping our subclass in `GObject.registerClass()`
+const Config = imports.misc.config;
+let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
+if (shellMinorVersion > 30) {
+    const GObject = imports.gi.GObject;
+    TodoList = GObject.registerClass(
+        {GTypeName: 'TodoList'},
+        TodoList
+    );
+}
+
