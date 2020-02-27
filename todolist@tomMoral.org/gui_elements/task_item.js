@@ -4,6 +4,7 @@ const Lang = imports.lang;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const Clutter = imports.gi.Clutter;
+const GObject = imports.gi.GObject;
 const PopupMenu = imports.ui.popupMenu;
 
 // Extension import: rename dialog and util.debug
@@ -20,25 +21,25 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(
     Extension.path + "/icons/gtk-close.png");
 
 // TaskItem object wrapper
-var TaskItem = class TaskItem extends PopupMenu.PopupBaseMenuItem {
-
-    constructor(task){
-        super();
+var TaskItem = class TaskItem extends GObject.Object {
+    _init(task){
+        super._init();
         this.task = task;
         this.connections = []
+        this.menu_item = new PopupMenu.PopupBaseMenuItem();
 
         // Set layout manager
-        this.actor.add_style_class_name('task-item');
-        this.actor.set_y_expand(true);
-        this.actor.set_layout_manager(new Clutter.BoxLayout());
+        this.menu_item.actor.add_style_class_name('task-item');
+        this.menu_item.actor.set_y_expand(true);
+        this.menu_item.actor.set_layout_manager(new Clutter.BoxLayout());
 
-        // Add an editable lbel to the layout to display the task
+        // Add an editable label to the layout to display the task
         this._label = new St.Entry({
             style_class: 'task-label',
             text: this.task.name,
             can_focus: true
         });
-        this.actor.add_actor(this._label);
+        this.menu_item.actor.add_actor(this._label);
 
         // Create connection for rename and clicks
         let _ct = this._label.clutter_text;
@@ -55,7 +56,7 @@ var TaskItem = class TaskItem extends PopupMenu.PopupBaseMenuItem {
         });
         let logo = new St.Icon({icon_size: 10, gicon: GTK_CLOSE_ICON});
         this._del_btn.add_actor(logo);
-        this.actor.add_actor(this._del_btn);
+        this.menu_item.actor.add_actor(this._del_btn);
 
         // Create connection for delete button
         conn = this._del_btn.connect('clicked',  Lang.bind(this, this._emit_delete));
@@ -67,13 +68,15 @@ var TaskItem = class TaskItem extends PopupMenu.PopupBaseMenuItem {
             connection[0].disconnect(connection[1]);
         }
         this.connections.length = 0;
-        this.actor.destroy();
+        this.menu_item.actor.destroy();
     }
     isEntry(){
         return false;
     }
     _emit_delete (){
-        this.emit('supr_signal', this.task);
+        debug('yo')
+        debug(this.task)
+        this.emit('supr_signal', JSON.stringify(this.task));
         this.destroy();
     }
     _clicked (actor, ev){
@@ -84,15 +87,33 @@ var TaskItem = class TaskItem extends PopupMenu.PopupBaseMenuItem {
     _rename (){
         // Rename the task and notify the todolist so
         // it is updated.
-        name = this._label.get_text();
+        var name = this._label.get_text();
 
         // Return if the name did not changed or is not set
         if(name == this.task.name || name.length == 0)
             return;
 
-        debug("Rename task" + this.task.name + " to " + name);
         // Emit signal so todolist clean up
+        debug("Rename task " + this.task.name + " to " + name);
         this.task.name = name;
         this.emit('name_changed');
     }
+}
+
+
+
+// In gnome-shell >= 3.32 this class and several others became GObject
+// subclasses. We can account for this change in a backwards-compatible way
+// simply by re-wrapping our subclass in `GObject.registerClass()`
+const Config = imports.misc.config;
+let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
+if (shellMinorVersion > 30) {
+
+    TaskItem = GObject.registerClass({
+        Properties: {},
+        Signals: {
+            'name_changed': {},
+            'supr_signal': {param_types: [GObject.TYPE_STRING]},
+        },
+    }, TaskItem);
 }

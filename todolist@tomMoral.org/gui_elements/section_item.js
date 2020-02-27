@@ -1,11 +1,12 @@
 
+const St = imports.gi.St;
+const Lang = imports.lang;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Shell = imports.gi.Shell;
+const GObject = imports.gi.GObject;
 const PopupMenu = imports.ui.popupMenu;
 const ModalDialog = imports.ui.modalDialog;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const Shell = imports.gi.Shell;
-const Lang = imports.lang;
-const St = imports.gi.St;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const TaskItem = Extension.imports.gui_elements.task_item;
@@ -25,13 +26,12 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 
-// TodoList object
-var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
-
-    constructor(section)
-    {
-        super(section.name);
+// Section of the todolist object
+var SectionItem = class SectionItem extends GObject.Object {
+    _init(section){
+        super._init();
         this.section = section;
+        this.menu_item = new PopupMenu.PopupSubMenuMenuItem(section.name);
 
         debug("Got section with name: " + section.name);
         this.id = section.id;
@@ -50,10 +50,11 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
             can_focus: true
         });
         // add our label by replacing the default label in PopupSubMenuMenuItem
-        this.actor.add_child(this._label);
-        this.actor.set_child_above_sibling(this._label, this.label);
-        this.actor.remove_actor(this.label);
-        this.label.destroy();
+        this.menu_item.actor.add_child(this._label);
+        this.menu_item.actor.set_child_above_sibling(
+            this._label, this.menu_item.label);
+        this.menu_item.actor.remove_actor(this.menu_item.label);
+        this.menu_item.label.destroy();
 
         // Create connection for rename and clicks
         let _ct = this._label.clutter_text;
@@ -66,7 +67,7 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         let logo = new St.Icon({icon_size: 12, gicon: GTK_CLOSE_ICON,
                                 style_class: 'icon_sec'});
         this.delete_btn.add_actor(logo);
-        this.actor.add_actor(this.delete_btn);
+        this.menu_item.actor.add_actor(this.delete_btn);
         // Create connection for delete button
         conn = this.delete_btn.connect('clicked', Lang.bind(this, this._supr_call));
         this.connections.push([this.delete_btn, conn]);
@@ -75,21 +76,18 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         this._draw_section();
     }
     destroy(){
-        debug("yo")
-
         this.connections.length = 0;
-        this.disconnectAll();
+        // this.menu_item.disconnectAll();
         debug("All disconnected")
 
         // Remove all sub items
         if (this.entry_task != null)
             this.entry_task.destroy();
-        this.actor.destroy();
+        this.menu_item.actor.destroy();
 
         debug("Section clean-up done")
     }
-    _draw_section()
-    {
+    _draw_section() {
         this._clear();
 
         // Initiate the task count
@@ -111,7 +109,7 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         let entry_task = new EntryItem();
         let conn = entry_task.connect('new_task', Lang.bind(this, this._create_task));
         this.connections.push([entry_task, conn])
-        this.menu.addMenuItem(entry_task);
+        this.menu_item.menu.addMenuItem(entry_task.menu_item);
     }
     _add_task (i)
     {
@@ -125,7 +123,7 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         this.connections.push([taskItem, conn])
 
         // Add the task to the section
-        this.menu.addMenuItem(taskItem, i);
+        this.menu_item.menu.addMenuItem(taskItem.menu_item, i);
         this.n_tasks ++;
 
         // If it is the first task added, hide the delete
@@ -155,8 +153,10 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         this.emit('task_count_changed', -1);
         this._dump();
     }
-    _remove_task  (o, task)
+    _remove_task  (item, task)
     {
+        task = JSON.parse(task)
+        debug(task);
         // Remove task from the section
         let id = this.section.tasks.indexOf(task);
         this.section.tasks.splice(id, 1);
@@ -188,14 +188,13 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
     _clear ()
     {
         let item = null;
-        let items = this.menu._getMenuItems();
+        let items = this.menu_item.menu._getMenuItems();
         for (let i=0; i<items.length; i++)
         {
             item = items[i];
-            item.disconnectAll();
             item.destroy();
         }
-        this.menu.removeAll();
+        this.menu_item.menu.removeAll();
 
     }
     _supr_call ()
@@ -222,17 +221,23 @@ var SectionItem = class SectionItem extends PopupMenu.PopupSubMenuMenuItem {
         }
     }
 }
+// );
 
-
-// // In gnome-shell >= 3.32 this class and several others became GObject
-// // subclasses. We can account for this change in a backwards-compatible way
-// // simply by re-wrapping our subclass in `GObject.registerClass()`
-// const Config = imports.misc.config;
-// let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-// if (shellMinorVersion > 30) {
-//     const GObject = imports.gi.GObject;
-//     SectionItem = GObject.registerClass(
-//         {GTypeName: 'SectionItem'},
-//         SectionItem
-//     );
-// }
+// In gnome-shell >= 3.32 this class and several others became GObject
+// subclasses. We can account for this change in a backwards-compatible way
+// simply by re-wrapping our subclass in `GObject.registerClass()`
+const Config = imports.misc.config;
+let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
+if (shellMinorVersion > 30) {
+    SectionItem = GObject.registerClass(
+        {
+            GTypeName: 'SectionItem',
+            Signals: {
+                'supr_signal' : {param_types: [GObject.TYPE_OBJECT]},
+                'dump_signal' : {param_types: [GObject.TYPE_BOOLEAN]},
+                'task_count_changed': {param_types: [GObject.TYPE_INT]}
+            }
+        },
+        SectionItem
+    );
+}

@@ -7,6 +7,7 @@ const Main = imports.ui.main;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
 const Clutter = imports.gi.Clutter;
+const GObject = imports.gi.GObject;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
@@ -28,10 +29,11 @@ const BASE_JSON = '{"0": {"id": "0", "name": "Section1", "tasks": []}}';
 
 
 // TodoList object
-var TodoList = class TodoList extends PanelMenu.Button {
+var TodoList = class TodoList extends GObject.Object {
 
     _init(meta){
-        super._init(St.Align.START, "TodoList");
+        super._init();
+        this.menu_button = new PanelMenu.Button(St.Align.START, "TodoList");
 
         // Tasks file
         this.dirPath = GLib.get_home_dir() + "/.config/ToDoList/";
@@ -41,6 +43,8 @@ var TodoList = class TodoList extends PanelMenu.Button {
         this.sectionsFile =  this.dirPath + "section.tasks";
         this.dbFile =  this.dirPath + "tasks.json";
         this._load();
+
+        this.section_items = [];
 
     }
 
@@ -93,7 +97,7 @@ var TodoList = class TodoList extends PanelMenu.Button {
         let entryNewTask = this.newTask.clutter_text;
         entryNewTask.set_max_length(MAX_LENGTH);
         // Call back to add section when ENTER is press
-        entryNewTask.connect('key-press-event', Lang.bind(this,function(o,e)
+        entryNewTask.connect('key-press-event', Lang.bind(this, function(o,e)
         {
             let symbol = e.get_key_symbol();
             if (symbol == KEY_RETURN || symbol == KEY_ENTER)
@@ -108,7 +112,7 @@ var TodoList = class TodoList extends PanelMenu.Button {
         bottomSection.actor.add_actor(this.newTask);
         bottomSection.actor.add_style_class_name("newTaskSection");
         this.mainBox.add_actor(bottomSection.actor);
-        this.menu.box.add(this.mainBox);
+        this.menu_button.menu.box.add(this.mainBox);
     }
 
     // Fill UI with the section items
@@ -135,7 +139,8 @@ var TodoList = class TodoList extends PanelMenu.Button {
     _add_section(section){
         debug(section.name);
         let item = new section_item.SectionItem(section);
-        this.todosSec.addMenuItem(item);
+        this.todosSec.addMenuItem(item.menu_item);
+        this.section_items.push(item);
 
         this.n_tasks += item.n_tasks;
 
@@ -153,7 +158,7 @@ var TodoList = class TodoList extends PanelMenu.Button {
         this.buttonText.set_text("ToDo ("+this.n_tasks+")");
     }
     _clear(){
-        for (var section of this.todosSec._getMenuItems()){
+        for (var section of this.section_items){
             section._disconnect();
             section._clear();
         }
@@ -193,7 +198,7 @@ var TodoList = class TodoList extends PanelMenu.Button {
         // clean-up the section
         section.destroy();
     }
-    _dump(){
+    _dump(it){
         // Open dbFile and dump our JSON todolist
         let f = Gio.file_new_for_path(this.dbFile);
         let out = f.replace(null, false, Gio.FileCreateFlags.NONE, null);
@@ -226,7 +231,7 @@ var TodoList = class TodoList extends PanelMenu.Button {
         this.mainBox = null;
         this.buttonText = new St.Label({text:_("(...)"), y_align: Clutter.ActorAlign.CENTER});
         this.buttonText.set_style("text-align:center;");
-        this.actor.add_actor(this.buttonText);
+        this.menu_button.add_actor(this.buttonText);
 
         this._buildUI();
         this._fill_ui();
@@ -248,10 +253,10 @@ var TodoList = class TodoList extends PanelMenu.Button {
     }
     // Called when 'open-todolist' is emitted (binded with Lang.bind)
     signalKeyOpen(){
-        if (this.menu.isOpen)
-            this.menu.close();
+        if (this.menu_button.menu.isOpen)
+            this.menu_button.menu.close();
         else{
-            this.menu.open();
+            this.menu_button.menu.open();
             this.newTask.grab_key_focus();
         }
     }

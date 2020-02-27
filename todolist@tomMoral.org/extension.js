@@ -23,13 +23,13 @@ function enable()
 {
     todolist = new todo_list.TodoList(meta);
     todolist._enable();
-    Main.panel.addToStatusArea(meta.uuid, todolist);
+    Main.panel.addToStatusArea(meta.uuid, todolist.menu_button);
 }
 
 function disable()
 {
     todolist._disable();
-    todolist.destroy();
+    todolist.menu_button.destroy();
     todolist = null;
 }
 
