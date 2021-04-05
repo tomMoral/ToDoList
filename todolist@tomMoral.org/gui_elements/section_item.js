@@ -26,14 +26,15 @@ const GTK_CLOSE_ICON = Gio.icon_new_for_string(Extension.path + "/icons/gtk-clos
 
 
 
+
 // Section of the todolist object
 var SectionItem = class SectionItem extends GObject.Object {
-    _init(section){
+    _init(section) {
         super._init();
         this.section = section;
         this.menu_item = new PopupMenu.PopupSubMenuMenuItem(section.name);
 
-        debug("Got section with name: " + section.name);
+        debug("Section add: " + section.name);
         this.id = section.id;
         this.name = section.name;
         this.tasks = section.tasks;
@@ -63,9 +64,11 @@ var SectionItem = class SectionItem extends GObject.Object {
 
         // Add a delete button that will be showed if there is no more task in
         // the section.
-        this.delete_btn = new St.Button({ style_class: 'sec_supr', label:''});
-        let logo = new St.Icon({icon_size: 12, gicon: GTK_CLOSE_ICON,
-                                style_class: 'icon_sec'});
+        this.delete_btn = new St.Button({ style_class: 'sec_supr', label: '' });
+        let logo = new St.Icon({
+            icon_size: 12, gicon: GTK_CLOSE_ICON,
+            style_class: 'icon_sec'
+        });
         this.delete_btn.add_actor(logo);
         this.menu_item.actor.add_actor(this.delete_btn);
         // Create connection for delete button
@@ -75,7 +78,7 @@ var SectionItem = class SectionItem extends GObject.Object {
         // Draw the section
         this._draw_section();
     }
-    destroy(){
+    destroy() {
         this.connections.length = 0;
         // this.menu_item.disconnectAll();
         debug("All disconnected")
@@ -94,7 +97,7 @@ var SectionItem = class SectionItem extends GObject.Object {
         this.n_tasks = 0;
 
         // Add tasks item in the section
-        for(var i=0; i < this.tasks.length; i++)
+        for (var i = 0; i < this.tasks.length; i++)
             this._add_task(i);
 
         // Update the title of the section with the right task count
@@ -102,8 +105,7 @@ var SectionItem = class SectionItem extends GObject.Object {
         this._set_text();
 
         // If there is no task in the section,show the delete button.
-        if(this.n_tasks == 0)
-            this.delete_btn.show();
+        this.delete_btn.show();
 
         // Add the a EntryItem to allow adding new tasks in this section.
         let entry_task = new EntryItem();
@@ -111,8 +113,7 @@ var SectionItem = class SectionItem extends GObject.Object {
         this.connections.push([entry_task, conn])
         this.menu_item.menu.addMenuItem(entry_task.menu_item);
     }
-    _add_task (i)
-    {
+    _add_task(i) {
         // Create a task item and set its callback
         let taskItem = new TaskItem.TaskItem(this.section.tasks[i]);
 
@@ -124,46 +125,46 @@ var SectionItem = class SectionItem extends GObject.Object {
 
         // Add the task to the section
         this.menu_item.menu.addMenuItem(taskItem.menu_item, i);
-        this.n_tasks ++;
+        this.n_tasks++;
 
         // If it is the first task added, hide the delete
         // button for the section.
-        if(this.n_tasks == 1)
+        if (this.n_tasks == 1)
             this.delete_btn.hide();
 
     }
-    _create_task (item, text)
-    {
+    _create_task(item, text) {
         // Create a new task to add in the todolist
         // and displays it while updating the counters
         // of our widget.
 
         // Don't add empty task
-        if (text == '' || text == '\n')
+        if (text == '' || text == '\n') {
             return;
+        }
 
         // New task object
-        let task = {name: text};
+        let task = { name: text };
 
         let id = this.tasks.push(task) - 1;
         this._add_task(id);
         this._set_text();
 
-        debug("Emit signals");
+        debug("task item add: " + task.name);
         this.emit('task_count_changed', -1);
-        this._dump();
+        this._dump()
     }
-    _remove_task  (item, task)
-    {
+
+    _remove_task(item, task) {
         task = JSON.parse(task)
-        debug(task);
+        debug("Task remove");
         // Remove task from the section
         let id = this.section.tasks.indexOf(task);
         this.section.tasks.splice(id, 1);
-        this.n_tasks --;
+        this.n_tasks--;
 
         // If there is no more tasks, show the delete button
-        if(this.n_tasks == 0)
+        if (this.n_tasks == 0)
             this.delete_btn.show();
 
         // Set section title
@@ -172,11 +173,10 @@ var SectionItem = class SectionItem extends GObject.Object {
         this._dump();
 
     }
-    _rename ()
-    {
+    _rename() {
         let name = this._label.get_text().replace(/ +\([0-9]+\)$/, "")
         // No change needed
-        if(name == this.name || name.length == 0)
+        if (name == this.name || name.length == 0)
             return;
 
         // Update
@@ -185,37 +185,34 @@ var SectionItem = class SectionItem extends GObject.Object {
         this._set_text();
         this._dump();
     }
-    _clear ()
-    {
+    _clear() {
         let item = null;
         let items = this.menu_item.menu._getMenuItems();
-        for (let i=0; i<items.length; i++)
-        {
+        for (let i = 0; i < items.length; i++) {
             item = items[i];
             item.destroy();
         }
         this.menu_item.menu.removeAll();
 
     }
-    _supr_call ()
-    {
+    _supr_call() {
         this.emit('supr_signal', this);
     }
-    _set_text (){
+    _set_text() {
         // Set text of the label with the counter of tasks
         this._label.set_text(this.section.name + " (" + this.n_tasks + ")");
     }
-    _dump (){
+    _dump() {
         this.emit("dump_signal", false);
     }
-    _disconnect(){
+    _disconnect() {
         // Clean up all the connection
-        for(var connection of this.connections.reverse()){
+        for (var connection of this.connections.reverse()) {
             debug("Connection " + connection);
-            try{
+            try {
                 connection[0].disconnect(connection[1]);
             }
-            catch(error){
+            catch (error) {
                 debug(error);
             }
         }
@@ -233,9 +230,9 @@ if (shellMinorVersion > 30) {
         {
             GTypeName: 'SectionItem',
             Signals: {
-                'supr_signal' : {param_types: [GObject.TYPE_OBJECT]},
-                'dump_signal' : {param_types: [GObject.TYPE_BOOLEAN]},
-                'task_count_changed': {param_types: [GObject.TYPE_INT]}
+                'supr_signal': { param_types: [GObject.TYPE_OBJECT] },
+                'dump_signal': { param_types: [GObject.TYPE_BOOLEAN] },
+                'task_count_changed': { param_types: [GObject.TYPE_INT] }
             }
         },
         SectionItem

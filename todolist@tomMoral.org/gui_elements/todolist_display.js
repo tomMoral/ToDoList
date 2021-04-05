@@ -53,7 +53,6 @@ var TodoList = class TodoList extends GObject.Object {
         if (this.mainBox != null)
             this.mainBox.destroy();
 
-
         // Create main box
         this.mainBox = new St.BoxLayout();
         this.mainBox.set_vertical(true);
@@ -136,6 +135,7 @@ var TodoList = class TodoList extends GObject.Object {
         this.newTask.hint_text = _("New task...");
 
     }
+
     _add_section(section){
         debug(section.name);
         let item = new section_item.SectionItem(section);
