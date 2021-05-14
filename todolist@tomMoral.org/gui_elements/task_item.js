@@ -105,15 +105,14 @@ var TaskItem = class TaskItem extends GObject.Object {
 // In gnome-shell >= 3.32 this class and several others became GObject
 // subclasses. We can account for this change in a backwards-compatible way
 // simply by re-wrapping our subclass in `GObject.registerClass()`
-const Config = imports.misc.config;
-let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-if (shellMinorVersion > 30) {
-
-    TaskItem = GObject.registerClass({
-        Properties: {},
+TaskItem = GObject.registerClass(
+    {
+        GTypeName: 'Todolist_TaskItem',
+        Extends: GObject.Object,
         Signals: {
             'name_changed': {},
             'supr_signal': {param_types: [GObject.TYPE_STRING]},
         },
-    }, TaskItem);
-}
+    },
+    TaskItem
+);

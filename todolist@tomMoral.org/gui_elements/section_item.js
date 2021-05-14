@@ -221,23 +221,19 @@ var SectionItem = class SectionItem extends GObject.Object {
         }
     }
 }
-// );
 
 // In gnome-shell >= 3.32 this class and several others became GObject
 // subclasses. We can account for this change in a backwards-compatible way
 // simply by re-wrapping our subclass in `GObject.registerClass()`
-const Config = imports.misc.config;
-let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-if (shellMinorVersion > 30) {
-    SectionItem = GObject.registerClass(
-        {
-            GTypeName: 'SectionItem',
-            Signals: {
-                'supr_signal' : {param_types: [GObject.TYPE_OBJECT]},
-                'dump_signal' : {param_types: [GObject.TYPE_BOOLEAN]},
-                'task_count_changed': {param_types: [GObject.TYPE_INT]}
-            }
-        },
-        SectionItem
-    );
-}
+SectionItem = GObject.registerClass(
+    {
+        GTypeName: 'Todolist_SectionItem',
+        Extends: GObject.Object,
+        Signals: {
+            'supr_signal' : {param_types: [GObject.TYPE_OBJECT]},
+            'dump_signal' : {param_types: [GObject.TYPE_BOOLEAN]},
+            'task_count_changed': {param_types: [GObject.TYPE_INT]}
+        }
+    },
+    SectionItem
+);

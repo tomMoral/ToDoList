@@ -272,13 +272,10 @@ var TodoList = class TodoList extends GObject.Object {
 // In gnome-shell >= 3.32 this class and several others became GObject
 // subclasses. We can account for this change in a backwards-compatible way
 // simply by re-wrapping our subclass in `GObject.registerClass()`
-const Config = imports.misc.config;
-let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-if (shellMinorVersion > 30) {
-    const GObject = imports.gi.GObject;
-    TodoList = GObject.registerClass(
-        {GTypeName: 'TodoList'},
-        TodoList
-    );
-}
-
+TodoList = GObject.registerClass(
+    {
+        GTypeName: 'TodoList_Main',
+        Extends: GObject.Object,
+    },
+    TodoList
+);
