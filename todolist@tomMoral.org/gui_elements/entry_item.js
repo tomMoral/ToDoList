@@ -19,7 +19,7 @@ const MAX_LENGTH = 75;
 // Read more: http://blog.fpmurphy.com/2011/04/replace-gnome-shell-activities-text-string-with-icon.html#ixzz3ndrA3Jrl
 
 
-// TodoList object
+// EntryItem object
 var EntryItem = class EntryItem extends GObject.Object {
     _init()
     {
@@ -69,19 +69,15 @@ var EntryItem = class EntryItem extends GObject.Object {
 // In gnome-shell >= 3.32 this class and several others became GObject
 // subclasses. We can account for this change in a backwards-compatible way
 // simply by re-wrapping our subclass in `GObject.registerClass()`
-const Config = imports.misc.config;
-let shellMinorVersion = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-if (shellMinorVersion > 30) {
-    EntryItem = GObject.registerClass(
-        {
-            GTypeName: 'EntryItem',
-            Extends: GObject.Object,
-            Signals: {
-                'new_task': {
-                    param_types: [GObject.TYPE_STRING]
-                }
+EntryItem = GObject.registerClass(
+    {
+        GTypeName: 'Todolist_EntryItem',
+        Extends: GObject.Object,
+        Signals: {
+            'new_task': {
+                param_types: [GObject.TYPE_STRING]
             }
-        },
-        EntryItem
-    );
-}
+        }
+    },
+    EntryItem
+);
