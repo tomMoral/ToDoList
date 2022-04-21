@@ -67,7 +67,7 @@
 	text-align: right;
 }
 .popup-menu-item{
-	background-color: @grey;	
+	background-color: @grey;
 }
 
 .task-entry,
@@ -80,6 +80,7 @@
 }
 
 .task-label{
+	color: rgb(204, 204, 204);
 	background: transparent;
 	border: none;
 	padding: 0, 0, 0, 0;
