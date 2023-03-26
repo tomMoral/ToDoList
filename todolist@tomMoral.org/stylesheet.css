@@ -29,12 +29,6 @@
 	margin-left: 12px;
 	width: 250px;
 }
-#newTaskEntry:focus, #newTaskEntry:hover,
-#newSectionEntry:focus, #newSectionEntry:hover {
-	background-gradient-start: rgb(200,200,200);
-	background-gradient-end: white;
-	background-gradient-direction: vertical;
-}
 
 #newSectionEntry:focus, #newSectionEntry:hover{
 	border-width: 2px;
